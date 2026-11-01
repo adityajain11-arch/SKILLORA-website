@@ -1,0 +1,8 @@
+{
+  "name": "Cozy Internship Haven",
+  "description": "A warm, reassuring, and empowering internship discovery and application sanctuary for early-career students and interns.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
