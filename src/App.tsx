@@ -10,11 +10,13 @@ import { ApplicationTracker } from './components/ApplicationTracker';
 import { ReviewsView } from './components/ReviewsView';
 import { ProfileView } from './components/ProfileView';
 import { LoginPage } from './components/LoginPage';
+import { AdminLoginPage } from './components/AdminLoginPage';
 import { AdminDashboard } from './components/AdminDashboard';
 import { Sparkles, Bookmark, UserCheck, Laptop } from 'lucide-react';
 
 export default function App() {
-  const [currentTab, setCurrentTab] = useState<'discover' | 'tracker' | 'reviews' | 'profile' | 'login' | 'admin'>('discover');
+  // Login screen is presented at first before reaching main page
+  const [currentTab, setCurrentTab] = useState<'discover' | 'tracker' | 'reviews' | 'profile' | 'login' | 'admin-login' | 'admin'>('login');
   const [isDark, setIsDark] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('haven_theme') === 'dark';
@@ -202,7 +204,13 @@ export default function App() {
     }));
     setLoginToast(`Private session active for ${user.name}`);
     setTimeout(() => setLoginToast(null), 3500);
-    setCurrentTab('discover');
+    
+    // Admin directly enters admissions console; students enter discover
+    if (user.role === 'admin') {
+      setCurrentTab('admin');
+    } else {
+      setCurrentTab('discover');
+    }
 
     // Fetch user-isolated private data immediately
     setTimeout(() => {
@@ -230,6 +238,7 @@ export default function App() {
       setLoginToast('Signed out of Workvanta');
       setTimeout(() => setLoginToast(null), 3000);
       fetchInternships();
+      setCurrentTab('login');
     }
   };
 
@@ -350,6 +359,20 @@ export default function App() {
     setSelectedCategory('All');
   };
 
+  // Dedicated High-Security Admin Portal Mode
+  if (currentTab === 'admin-login') {
+    return (
+      <AdminLoginPage
+        currentUser={currentUser}
+        onLoginSuccess={(user, token) => {
+          handleLoginSuccess(user, token);
+          setCurrentTab('admin');
+        }}
+        onBackToPublic={() => setCurrentTab('discover')}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#FFF8F0] dark:bg-[#1B1826] text-[#2D2A3E] dark:text-[#F2EEFF] transition-colors flex flex-col font-sans">
       
@@ -380,6 +403,7 @@ export default function App() {
             currentUser={currentUser}
             onLoginSuccess={handleLoginSuccess}
             onBackToDiscover={() => setCurrentTab('discover')}
+            onNavigateToAdminLogin={() => setCurrentTab('admin-login')}
           />
         )}
 
@@ -477,7 +501,9 @@ export default function App() {
 
         {currentTab === 'admin' && (
           <AdminDashboard
+            currentUser={currentUser}
             onBackToDiscover={() => setCurrentTab('discover')}
+            onNavigateToAdminLogin={() => setCurrentTab('admin-login')}
           />
         )}
       </main>
@@ -520,20 +546,22 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-6">
-            <button onClick={() => setCurrentTab('discover')} className="hover:text-[#7C6CF0] transition-colors">
+            <button onClick={() => setCurrentTab('discover')} className="hover:text-[#7C6CF0] transition-colors cursor-pointer">
               Remote Roles
             </button>
-            <button onClick={() => setCurrentTab('tracker')} className="hover:text-[#7C6CF0] transition-colors">
+            <button onClick={() => setCurrentTab('tracker')} className="hover:text-[#7C6CF0] transition-colors cursor-pointer">
               Career Journey
             </button>
-            <button onClick={() => setCurrentTab('reviews')} className="hover:text-[#7C6CF0] transition-colors">
+            <button onClick={() => setCurrentTab('reviews')} className="hover:text-[#7C6CF0] transition-colors cursor-pointer">
               Reviews
             </button>
-            <button onClick={() => setCurrentTab('admin')} className="hover:text-[#7C6CF0] transition-colors font-bold text-[#7C6CF0] dark:text-[#A99CFF]">
-              Admin Portal
-            </button>
-            <button onClick={() => setCurrentTab('login')} className="hover:text-[#7C6CF0] transition-colors font-semibold">
-              Private Login
+            {currentUser?.role === 'admin' && (
+              <button onClick={() => setCurrentTab('admin')} className="hover:text-emerald-500 transition-colors font-bold text-emerald-600 dark:text-emerald-400 cursor-pointer">
+                Admin Console
+              </button>
+            )}
+            <button onClick={() => setCurrentTab('login')} className="hover:text-[#7C6CF0] transition-colors font-semibold cursor-pointer">
+              {currentUser ? 'My Account' : 'Private Login'}
             </button>
           </div>
         </div>

@@ -3,8 +3,8 @@ import { Sparkles, Moon, Sun, LogIn, LogOut, User, ChevronDown } from 'lucide-re
 import { AuthUser } from '../types';
 
 interface NavbarProps {
-  currentTab: 'discover' | 'tracker' | 'reviews' | 'profile' | 'login' | 'admin';
-  setCurrentTab: (tab: 'discover' | 'tracker' | 'reviews' | 'profile' | 'login' | 'admin') => void;
+  currentTab: 'discover' | 'tracker' | 'reviews' | 'profile' | 'login' | 'admin-login' | 'admin';
+  setCurrentTab: (tab: 'discover' | 'tracker' | 'reviews' | 'profile' | 'login' | 'admin-login' | 'admin') => void;
   isDark: boolean;
   setIsDark: (dark: boolean) => void;
   savedCount: number;
@@ -34,7 +34,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         {/* Zone 1: Single text element wordmark */}
         <button
           onClick={() => setCurrentTab('discover')}
-          className="flex items-center gap-2.5 text-left group focus:outline-none"
+          className="flex items-center gap-2.5 text-left group focus:outline-none cursor-pointer"
         >
           <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-[#7C6CF0] to-[#FF8A65] flex items-center justify-center text-white shadow-sm group-hover:scale-105 transition-transform">
             <Sparkles className="w-5 h-5" />
@@ -93,22 +93,25 @@ export const Navbar: React.FC<NavbarProps> = ({
             )}
           </button>
 
-          <button
-            onClick={() => setCurrentTab('admin')}
-            className={`whitespace-nowrap shrink-0 transition-colors py-1 relative flex items-center gap-1.5 ${
-              currentTab === 'admin'
-                ? 'text-[#7C6CF0] dark:text-[#A99CFF] font-bold'
-                : 'text-[#6B6880] dark:text-[#A5A0BA] hover:text-[#2D2A3E] dark:hover:text-[#F2EEFF]'
-            }`}
-          >
-            <span>Admin Portal</span>
-            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[#7C6CF0]/15 text-[#7C6CF0] dark:text-[#A99CFF] font-extrabold uppercase tracking-wider">
-              Recruiter
-            </span>
-            {currentTab === 'admin' && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#7C6CF0] dark:bg-[#A99CFF] rounded-full" />
-            )}
-          </button>
+          {/* STRICTLY RESTRICTED: Admin Portal ONLY visible to authenticated Admins */}
+          {currentUser?.role === 'admin' && (
+            <button
+              onClick={() => setCurrentTab('admin')}
+              className={`whitespace-nowrap shrink-0 transition-colors py-1 relative flex items-center gap-1.5 ${
+                currentTab === 'admin'
+                  ? 'text-emerald-600 dark:text-emerald-400 font-bold'
+                  : 'text-[#6B6880] dark:text-[#A5A0BA] hover:text-[#2D2A3E] dark:hover:text-[#F2EEFF]'
+              }`}
+            >
+              <span>Admin Console</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-extrabold uppercase tracking-wider">
+                Admin
+              </span>
+              {currentTab === 'admin' && (
+                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-500 rounded-full" />
+              )}
+            </button>
+          )}
         </nav>
 
         {/* Zone 3: 1 primary action (+ subtle theme toggle) */}
@@ -166,16 +169,18 @@ export const Navbar: React.FC<NavbarProps> = ({
                     <span>My Workvanta Profile</span>
                   </button>
 
-                  <button
-                    onClick={() => {
-                      setShowDropdown(false);
-                      setCurrentTab('admin');
-                    }}
-                    className="w-full text-left px-3 py-2 hover:bg-[#7C6CF0]/10 flex items-center gap-2 text-[#7C6CF0] dark:text-[#A99CFF] font-semibold border-t border-[#7C6CF0]/10 dark:border-[#3D3759]"
-                  >
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>Recruiter Admin Portal</span>
-                  </button>
+                  {currentUser?.role === 'admin' && (
+                    <button
+                      onClick={() => {
+                        setShowDropdown(false);
+                        setCurrentTab('admin');
+                      }}
+                      className="w-full text-left px-3 py-2 hover:bg-[#7C6CF0]/10 flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-semibold border-t border-[#7C6CF0]/10 dark:border-[#3D3759]"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>Admissions Operations Console</span>
+                    </button>
+                  )}
 
                   <button
                     onClick={() => {

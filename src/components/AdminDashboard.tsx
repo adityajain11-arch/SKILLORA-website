@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Application, OfferLetter } from '../types';
+import { Application, OfferLetter, AuthUser } from '../types';
 import { OfferLetterModal } from './OfferLetterModal';
 import { 
   Users, 
@@ -19,17 +19,26 @@ import {
   ChevronRight,
   ShieldCheck,
   RefreshCw,
-  Edit3
+  Edit3,
+  Lock,
+  ShieldAlert
 } from 'lucide-react';
 import { fireCelebrationConfetti } from '../utils/confetti';
 
 interface AdminDashboardProps {
   onBackToDiscover: () => void;
+  onNavigateToAdminLogin: () => void;
+  currentUser: AuthUser | null;
 }
 
-export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToDiscover }) => {
+export const AdminDashboard: React.FC<AdminDashboardProps> = ({ 
+  onBackToDiscover, 
+  onNavigateToAdminLogin,
+  currentUser 
+}) => {
   const [applicants, setApplicants] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
+  const [accessDenied, setAccessDenied] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'All' | 'applied' | 'interviewing' | 'offer'>('All');
   
@@ -50,10 +59,30 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToDiscover
   // Recruiter review note draft
   const [reviewerNoteDraft, setReviewerNoteDraft] = useState('');
 
+  const TOKEN_KEY = 'workvanta_auth_token';
+  const getAuthHeaders = (): Record<string, string> => {
+    if (typeof window === 'undefined') return {};
+    const token = localStorage.getItem(TOKEN_KEY);
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
+
   const fetchApplicants = async () => {
+    if (!currentUser || currentUser.role !== 'admin') {
+      setAccessDenied(true);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
+    setAccessDenied(false);
     try {
-      const res = await fetch('/api/admin/applicants');
+      const res = await fetch('/api/admin/applicants', {
+        headers: getAuthHeaders()
+      });
+      if (res.status === 401 || res.status === 403) {
+        setAccessDenied(true);
+        setApplicants([]);
+        return;
+      }
       const data = await res.json();
       if (data.success) {
         setApplicants(data.data || []);
@@ -67,7 +96,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToDiscover
 
   useEffect(() => {
     fetchApplicants();
-  }, []);
+  }, [currentUser]);
 
   const handleOpenOfferComposer = (app: Application) => {
     setComposingOfferApp(app);
@@ -84,7 +113,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToDiscover
     try {
       const res = await fetch(`/api/admin/applicants/${composingOfferApp.id}/send-offer`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        },
         body: JSON.stringify({
           stipendAmount: stipendInput,
           startDate: startDateInput,
@@ -119,7 +151,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToDiscover
     try {
       const res = await fetch(`/api/admin/applicants/${id}/update-stage`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        },
         body: JSON.stringify({ stage, reviewerNotes: note })
       });
       const data = await res.json();
@@ -155,6 +190,44 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToDiscover
   const appliedCount = applicants.filter((a) => a.stage === 'applied').length;
   const interviewingCount = applicants.filter((a) => a.stage === 'interviewing').length;
   const offerCount = applicants.filter((a) => a.stage === 'offer').length;
+
+  if (accessDenied || !currentUser || currentUser.role !== 'admin') {
+    return (
+      <div className="max-w-xl mx-auto my-16 p-8 rounded-3xl bg-white dark:bg-[#1E1A2C] border border-red-500/20 text-center shadow-2xl space-y-6 animate-in fade-in">
+        <div className="w-16 h-16 rounded-3xl bg-red-500/10 text-red-500 flex items-center justify-center mx-auto shadow-inner">
+          <ShieldAlert className="w-8 h-8" />
+        </div>
+        
+        <div>
+          <span className="text-[10px] font-mono font-bold text-red-500 uppercase tracking-widest bg-red-500/10 px-3 py-1 rounded-full border border-red-500/20">
+            HTTP 403 · Access Denied
+          </span>
+          <h2 className="text-2xl font-black text-[#2D2A3E] dark:text-[#F2EEFF] mt-3">
+            Administrator Clearance Required
+          </h2>
+          <p className="text-xs text-[#6B6880] dark:text-[#A5A0BA] max-w-md mx-auto mt-2 leading-relaxed">
+            This internal portal contains confidential applicant records, student resume submissions, and offer issuance tools. Access is strictly restricted to verified Workvanta admissions personnel and recruiters.
+          </p>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+          <button
+            onClick={onBackToDiscover}
+            className="w-full sm:w-auto px-5 py-2.5 rounded-full text-xs font-bold border border-[#7C6CF0]/20 text-[#2D2A3E] dark:text-[#F2EEFF] hover:bg-[#7C6CF0]/10 transition-colors cursor-pointer"
+          >
+            ← Return to Remote Roles
+          </button>
+          <button
+            onClick={onNavigateToAdminLogin}
+            className="w-full sm:w-auto px-6 py-2.5 rounded-full text-xs font-bold bg-[#0F172A] dark:bg-emerald-500 text-white dark:text-[#080B11] font-mono flex items-center justify-center gap-2 shadow-lg hover:opacity-90 transition-opacity cursor-pointer"
+          >
+            <Lock className="w-3.5 h-3.5 text-emerald-400 dark:text-slate-950" />
+            <span>Staff Admin Gateway →</span>
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300">

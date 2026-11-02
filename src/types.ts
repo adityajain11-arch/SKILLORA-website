@@ -114,6 +114,7 @@ export interface AuthUser {
   major: string;
   gradYear: string;
   avatar?: string;
-  role: 'student';
+  role: 'student' | 'admin';
   token?: string;
 }
+
