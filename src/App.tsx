@@ -504,6 +504,7 @@ export default function App() {
             currentUser={currentUser}
             onBackToDiscover={() => setCurrentTab('discover')}
             onNavigateToAdminLogin={() => setCurrentTab('admin-login')}
+            onInternshipsUpdated={fetchInternships}
           />
         )}
       </main>

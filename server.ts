@@ -1248,7 +1248,171 @@ async function startServer() {
     }
   });
 
-  // 14. Protected Candidate Profile (PostgreSQL)
+  // 14. Admin: Schedule Interview Call - Clearance Protected
+  app.post('/api/admin/applicants/:id/schedule-interview', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { interviewTitle, interviewDate, meetingLink, interviewerNotes } = req.body;
+
+      const targetApp = await dbQueries.getApplicationById(id);
+      if (!targetApp) {
+        res.status(404).json({ success: false, message: 'Applicant submission not found' });
+        return;
+      }
+
+      const updates: any = {
+        stage: 'interviewing',
+        nextStepTitle: interviewTitle || 'Pair Programming Jam (Remote Video)',
+        nextStepDate: interviewDate || new Date(Date.now() + 3 * 86400000).toISOString()
+      };
+
+      const meetingInfo = meetingLink ? `\n[Video Meeting Link: ${meetingLink}]` : '';
+      const notesInfo = interviewerNotes ? `\n[Interview Note: ${interviewerNotes}]` : '';
+      updates.notes = `${targetApp.notes || ''}${meetingInfo}${notesInfo}`.trim();
+
+      const updated = await dbQueries.updateApplicationRecord(id, updates);
+
+      res.json({
+        success: true,
+        message: `Interview call successfully scheduled with ${targetApp.applicantName}!`,
+        data: updated
+      });
+    } catch (error: any) {
+      console.error('Failed to schedule interview:', error);
+      res.status(500).json({ success: false, message: 'Failed to schedule interview' });
+    }
+  });
+
+  // 15. Admin: Get all registered users who signed up - Clearance Protected
+  app.get('/api/admin/users', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const userList = await dbQueries.getAllUsersForAdmin();
+      res.json({
+        success: true,
+        count: userList.length,
+        data: userList
+      });
+    } catch (error: any) {
+      console.error('Failed to get users:', error);
+      res.status(500).json({ success: false, message: 'Failed to load user directory' });
+    }
+  });
+
+  // 16. Admin: Create new remote internship - Clearance Protected
+  app.post('/api/admin/internships', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const {
+        title,
+        company,
+        companyLogo,
+        location,
+        workType,
+        category,
+        hourlyRate,
+        monthlyStipend,
+        housingStipendMonthly,
+        matchScore,
+        matchReason,
+        friendlyDescription,
+        culturePillars,
+        responsibilities,
+        noJargonSkills,
+        interviewRoadmap,
+        alumniQuote,
+        deadline,
+        season
+      } = req.body;
+
+      if (!title || !company) {
+        res.status(400).json({ success: false, message: 'Role title and company name are required' });
+        return;
+      }
+
+      const newId = `intern-${Date.now()}`;
+      const newInternship = await dbQueries.createInternshipRecord({
+        id: newId,
+        title: title.trim(),
+        company: company.trim(),
+        companyLogo: companyLogo?.trim() || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&h=100&fit=crop&q=80',
+        location: location?.trim() || 'Remote — India',
+        workType: workType || 'Remote',
+        category: category || 'Software Engineering',
+        hourlyRate: Number(hourlyRate) || 50,
+        monthlyStipend: Number(monthlyStipend) || 8000,
+        housingStipendMonthly: Number(housingStipendMonthly) || 0,
+        matchScore: Number(matchScore) || 90,
+        matchReason: matchReason?.trim() || 'Matched based on high-impact student projects.',
+        friendlyDescription: friendlyDescription?.trim() || 'Exciting remote fellowship opportunity in India.',
+        culturePillars: Array.isArray(culturePillars) && culturePillars.length > 0 ? culturePillars : ['Remote First', 'Mentorship Driven', 'High Ownership'],
+        responsibilities: Array.isArray(responsibilities) && responsibilities.length > 0 ? responsibilities : ['Collaborate on product features with engineering team', 'Participate in team jams and code reviews'],
+        noJargonSkills: Array.isArray(noJargonSkills) && noJargonSkills.length > 0 ? noJargonSkills : ['TypeScript', 'React', 'Problem Solving'],
+        interviewRoadmap: Array.isArray(interviewRoadmap) && interviewRoadmap.length > 0 ? interviewRoadmap : [
+          { step: 1, title: 'Intro Chat', duration: '30 mins', description: 'Meet the team and share your projects' },
+          { step: 2, title: 'Technical Jam', duration: '45 mins', description: 'Practical coding exploration' }
+        ],
+        alumniQuote: alumniQuote || {
+          quote: 'A supportive, asynchronous team culture with genuine mentorship.',
+          studentName: 'Workvanta Fellow',
+          school: 'Indian University',
+          year: '2026'
+        },
+        deadline: deadline || '2026-12-31',
+        season: season || 'Summer 2026'
+      });
+
+      res.status(201).json({
+        success: true,
+        message: 'New remote internship published successfully',
+        data: newInternship
+      });
+    } catch (error: any) {
+      console.error('Failed to create internship:', error);
+      res.status(500).json({ success: false, message: 'Failed to create internship' });
+    }
+  });
+
+  // 17. Admin: Update existing internship - Clearance Protected
+  app.put('/api/admin/internships/:id', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { id } = req.params;
+      const target = await dbQueries.getInternshipById(id);
+      if (!target) {
+        res.status(404).json({ success: false, message: 'Internship not found' });
+        return;
+      }
+
+      const updated = await dbQueries.updateInternshipRecord(id, req.body);
+      res.json({
+        success: true,
+        message: 'Internship updated successfully',
+        data: updated
+      });
+    } catch (error: any) {
+      console.error('Failed to update internship:', error);
+      res.status(500).json({ success: false, message: 'Failed to update internship' });
+    }
+  });
+
+  // 18. Admin: Delete internship - Clearance Protected
+  app.delete('/api/admin/internships/:id', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { id } = req.params;
+      const deleted = await dbQueries.deleteInternshipRecord(id);
+      if (!deleted) {
+        res.status(404).json({ success: false, message: 'Internship not found' });
+        return;
+      }
+      res.json({
+        success: true,
+        message: 'Internship listing removed successfully'
+      });
+    } catch (error: any) {
+      console.error('Failed to delete internship:', error);
+      res.status(500).json({ success: false, message: 'Failed to delete internship' });
+    }
+  });
+
+  // 19. Protected Candidate Profile (PostgreSQL)
   app.get('/api/user-profile', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
     try {
       const profile = await dbQueries.getUserProfile(req.user!.id);

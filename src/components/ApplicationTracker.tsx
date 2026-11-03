@@ -223,50 +223,34 @@ export const ApplicationTracker: React.FC<ApplicationTrackerProps> = ({
                         )}
                       </div>
 
-                      {/* Official Offer Letter Button if Offer Issued */}
-                      {(app.offerLetter || app.stage === 'offer') && (
+                      {/* Official Offer Letter Button - ONLY if Admin actually issued an offer letter */}
+                      {app.offerLetter ? (
                         <button
-                          onClick={() => {
-                            if (app.offerLetter) {
-                              setViewingOffer(app.offerLetter);
-                            } else {
-                              // Default offer letter format for demo
-                              setViewingOffer({
-                                letterId: `WKV-OFFER-${app.id.slice(-6).toUpperCase()}`,
-                                candidateName: 'Fellowship Candidate',
-                                roleTitle: app.roleTitle,
-                                company: app.company,
-                                stipendAmount: 'Full Fellowship Grant & Tech Setup Allowance',
-                                startDate: 'June 1, 2026',
-                                remoteLocation: app.location || 'Remote — India',
-                                issuedDate: new Date().toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' }),
-                                signerName: 'Sarah Chen',
-                                signerTitle: 'Head of Engineering Talent, Workvanta Admissions',
-                                letterBody: `Dear Candidate,\n\nOn behalf of ${app.company} and Workvanta, congratulations! We are delighted to formally offer you the position of ${app.roleTitle}.\n\nYour portfolio and application stood out. Please review the fellowship terms below.`
-                              });
-                            }
-                          }}
-                          className="w-full py-2 px-3 rounded-xl bg-[#34D399]/20 hover:bg-[#34D399]/30 text-[#006949] dark:text-[#5EE3B0] text-xs font-bold flex items-center justify-center gap-1.5 border border-[#34D399]/30 transition-all shadow-xs"
+                          onClick={() => setViewingOffer(app.offerLetter!)}
+                          className="w-full py-2 px-3 rounded-xl bg-[#34D399]/20 hover:bg-[#34D399]/30 text-[#006949] dark:text-[#5EE3B0] text-xs font-bold flex items-center justify-center gap-1.5 border border-[#34D399]/30 transition-all shadow-xs cursor-pointer"
                         >
                           <Award className="w-3.5 h-3.5 text-[#34D399]" />
                           <span>View Official Offer Letter 📜</span>
                         </button>
-                      )}
+                      ) : app.stage === 'offer' ? (
+                        <div className="p-2.5 rounded-xl bg-[#34D399]/15 border border-[#34D399]/30 text-[11px] text-[#006949] dark:text-[#5EE3B0] font-semibold flex items-center gap-2">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-[#34D399] shrink-0" />
+                          <span>Offer Approved · Awaiting Official Letter Dispatch</span>
+                        </div>
+                      ) : null}
 
-                      {/* Stage Mover Buttons */}
+                      {/* Official Admissions Status Display (Read-Only for Candidate) */}
                       <div className="pt-2 border-t border-[#7C6CF0]/10 dark:border-[#3D3759] flex items-center justify-between text-xs">
-                        <span className="text-[11px] text-[#6B6880] dark:text-[#A5A0BA]">Move stage:</span>
-                        <select
-                          value={app.stage}
-                          onChange={(e) => handleStageChange(app.id, e.target.value as Application['stage'])}
-                          className="text-[11px] font-semibold px-2 py-1 rounded-lg bg-[#FFF8F0] dark:bg-[#1E1A2C] border border-[#7C6CF0]/20 dark:border-[#3D3759] text-[#7C6CF0] dark:text-[#A99CFF] focus:outline-none"
-                        >
-                          <option value="wishlist">Wishlist</option>
-                          <option value="applied">Applied</option>
-                          <option value="interviewing">Interviewing</option>
-                          <option value="offer">Offer 🎉</option>
-                          <option value="archived">Archived</option>
-                        </select>
+                        <span className="text-[11px] text-[#6B6880] dark:text-[#A5A0BA]">Admissions Stage:</span>
+                        <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-[#FFF8F0] dark:bg-[#1E1A2C] border border-[#7C6CF0]/20 text-[#7C6CF0] dark:text-[#A99CFF]">
+                          {app.stage === 'offer'
+                            ? 'Offer Extended 🎉'
+                            : app.stage === 'interviewing'
+                            ? 'Interview Scheduled'
+                            : app.stage === 'applied'
+                            ? 'Under Review'
+                            : 'Wishlist & Prep'}
+                        </span>
                       </div>
 
                     </div>

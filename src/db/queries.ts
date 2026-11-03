@@ -140,6 +140,30 @@ export async function updateUserProfile(userId: string, updates: Partial<typeof 
   }
 }
 
+export async function getAllUsersForAdmin() {
+  try {
+    const rows = await db.select().from(users);
+    return rows.map((u) => ({
+      id: u.id,
+      uid: u.uid,
+      name: u.name,
+      email: u.email,
+      university: u.university || 'University in India',
+      major: u.major || 'Computer Science',
+      gradYear: u.gradYear || '2027',
+      bio: u.bio || '',
+      skills: (u.skills as string[]) || [],
+      preferredRoles: (u.preferredRoles as string[]) || [],
+      preferredWorkType: u.preferredWorkType || 'Remote',
+      createdAt: u.createdAt,
+      role: u.email?.toLowerCase() === 'admin@workvanta.in' ? 'admin' : 'student'
+    })).sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+  } catch (error) {
+    console.error('Error in getAllUsersForAdmin:', error);
+    throw new Error('Database query failed for getAllUsersForAdmin', { cause: error });
+  }
+}
+
 // ==========================================
 // INTERNSHIPS REPOSITORY
 // ==========================================
@@ -160,6 +184,36 @@ export async function getInternshipById(id: string) {
   } catch (error) {
     console.error('Error in getInternshipById:', error);
     throw new Error('Database query failed for getInternshipById', { cause: error });
+  }
+}
+
+export async function createInternshipRecord(data: typeof internships.$inferInsert) {
+  try {
+    const rows = await db.insert(internships).values(data).returning();
+    return rows[0];
+  } catch (error) {
+    console.error('Error in createInternshipRecord:', error);
+    throw new Error('Database query failed for createInternshipRecord', { cause: error });
+  }
+}
+
+export async function updateInternshipRecord(id: string, updates: Partial<typeof internships.$inferInsert>) {
+  try {
+    const rows = await db.update(internships).set(updates).where(eq(internships.id, id)).returning();
+    return rows[0] || null;
+  } catch (error) {
+    console.error('Error in updateInternshipRecord:', error);
+    throw new Error('Database query failed for updateInternshipRecord', { cause: error });
+  }
+}
+
+export async function deleteInternshipRecord(id: string) {
+  try {
+    const deleted = await db.delete(internships).where(eq(internships.id, id)).returning();
+    return deleted.length > 0;
+  } catch (error) {
+    console.error('Error in deleteInternshipRecord:', error);
+    throw new Error('Database query failed for deleteInternshipRecord', { cause: error });
   }
 }
 
