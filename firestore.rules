@@ -1,0 +1,260 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Default-Deny Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Core Helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isVerifiedUser() && (
+        request.auth.token.email == 'adityajain22112006@gmail.com' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Validation Blueprints
+    function isValidUserPublic(data) {
+      return data.keys().hasAll(['uid', 'displayName', 'university', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'displayName', 'university', 'photoUrl', 'createdAt', 'updatedAt'])
+        && isValidId(data.uid)
+        && data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 100
+        && data.university is string && data.university.size() >= 1 && data.university.size() <= 120
+        && (!('photoUrl' in data) || (data.photoUrl is string && data.photoUrl.size() <= 500))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidUserPrivate(data) {
+      return data.keys().hasAll(['uid', 'email', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'email', 'gradYear', 'major', 'updatedAt'])
+        && isValidId(data.uid)
+        && data.email is string && data.email.size() >= 3 && data.email.size() <= 160
+        && (!('gradYear' in data) || (data.gradYear is string && data.gradYear.size() <= 20))
+        && (!('major' in data) || (data.major is string && data.major.size() <= 120))
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidChatSession(data) {
+      return data.keys().hasAll(['id', 'ownerId', 'title', 'persona', 'model', 'messageCount', 'status', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['id', 'ownerId', 'title', 'persona', 'model', 'contextRole', 'messageCount', 'status', 'createdAt', 'updatedAt'])
+        && isValidId(data.id)
+        && isValidId(data.ownerId)
+        && data.title is string && data.title.size() >= 1 && data.title.size() <= 140
+        && data.persona in ['coach', 'interviewer', 'resume']
+        && data.model in ['gemini-4-hydrogen', 'gemini-3.1-flash-lite']
+        && (!('contextRole' in data) || (data.contextRole is string && data.contextRole.size() <= 160))
+        && data.messageCount is int && data.messageCount >= 0 && data.messageCount <= 500
+        && data.status in ['active', 'archived']
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidChatMessage(data) {
+      return data.keys().hasAll(['id', 'sessionId', 'ownerId', 'role', 'text', 'createdAt'])
+        && data.keys().hasOnly(['id', 'sessionId', 'ownerId', 'role', 'text', 'createdAt'])
+        && isValidId(data.id)
+        && isValidId(data.sessionId)
+        && isValidId(data.ownerId)
+        && data.role in ['user', 'model']
+        && data.text is string && data.text.size() >= 1 && data.text.size() <= 12000
+        && data.createdAt is timestamp;
+    }
+
+    function isValidVoiceNote(data) {
+      return data.keys().hasAll(['id', 'ownerId', 'title', 'transcript', 'durationSec', 'mimeType', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['id', 'ownerId', 'title', 'transcript', 'durationSec', 'mimeType', 'personaContext', 'createdAt', 'updatedAt'])
+        && isValidId(data.id)
+        && isValidId(data.ownerId)
+        && data.title is string && data.title.size() >= 1 && data.title.size() <= 140
+        && data.transcript is string && data.transcript.size() >= 1 && data.transcript.size() <= 16000
+        && data.durationSec is int && data.durationSec >= 0 && data.durationSec <= 7200
+        && data.mimeType is string && data.mimeType.size() >= 1 && data.mimeType.size() <= 64
+        && (!('personaContext' in data) || (data.personaContext is string && data.personaContext.size() <= 64))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    // Connection validation probe doc (read-only)
+    match /test/connection {
+      allow get: if true;
+      allow write: if false;
+    }
+
+    // Admin registry (server-managed only)
+    match /admins/{userId} {
+      allow get: if isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow list, create, update, delete: if false;
+    }
+
+    // Users public profiles
+    match /users/{userId} {
+      allow get: if isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow list: if isAdmin();
+      allow create: if isVerifiedUser()
+        && isValidId(userId)
+        && isOwner(userId)
+        && isValidUserPublic(incoming())
+        && incoming().uid == request.auth.uid
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isVerifiedUser()
+        && isValidId(userId)
+        && isValidUserPublic(incoming())
+        && (
+          isAdmin() ||
+          (
+            isOwner(userId)
+            && incoming().uid == existing().uid
+            && incoming().createdAt == existing().createdAt
+            && incoming().updatedAt == request.time
+            && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'university', 'photoUrl', 'updatedAt'])
+          )
+        );
+      allow delete: if isAdmin();
+
+      // Strictly isolated PII subcollection
+      match /private/{docId} {
+        allow get: if isValidId(userId) && isValidId(docId) && (isOwner(userId) || isAdmin());
+        allow list: if isValidId(userId) && (isOwner(userId) || isAdmin());
+        allow create: if isVerifiedUser()
+          && isValidId(userId)
+          && isValidId(docId)
+          && isOwner(userId)
+          && isValidUserPrivate(incoming())
+          && incoming().uid == request.auth.uid
+          && incoming().updatedAt == request.time;
+        allow update: if isVerifiedUser()
+          && isValidId(userId)
+          && isValidId(docId)
+          && isValidUserPrivate(incoming())
+          && (
+            isAdmin() ||
+            (
+              isOwner(userId)
+              && incoming().uid == existing().uid
+              && incoming().updatedAt == request.time
+              && incoming().diff(existing()).affectedKeys().hasOnly(['email', 'gradYear', 'major', 'updatedAt'])
+            )
+          );
+        allow delete: if isAdmin();
+      }
+    }
+
+    // AI Coach multi-turn chat sessions
+    match /chatSessions/{sessionId} {
+      allow get: if isValidId(sessionId) && isSignedIn() && (existing().ownerId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
+      allow create: if isVerifiedUser()
+        && isValidId(sessionId)
+        && isValidChatSession(incoming())
+        && incoming().id == sessionId
+        && incoming().ownerId == request.auth.uid
+        && incoming().status == 'active'
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isVerifiedUser()
+        && isValidId(sessionId)
+        && isValidChatSession(incoming())
+        && (
+          isAdmin() ||
+          (
+            existing().ownerId == request.auth.uid
+            && existing().status != 'archived'
+            && incoming().id == existing().id
+            && incoming().ownerId == existing().ownerId
+            && incoming().createdAt == existing().createdAt
+            && incoming().updatedAt == request.time
+            && (
+              incoming().diff(existing()).affectedKeys().hasOnly(['title', 'persona', 'model', 'contextRole', 'messageCount', 'updatedAt']) ||
+              incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt'])
+            )
+          )
+        );
+      allow delete: if isVerifiedUser() && isValidId(sessionId) && (existing().ownerId == request.auth.uid || isAdmin());
+
+      // Ordered chat messages gated by parent session ownership
+      match /messages/{messageId} {
+        allow get: if isValidId(sessionId)
+          && isValidId(messageId)
+          && isSignedIn()
+          && (
+            isAdmin() ||
+            (
+              existing().ownerId == request.auth.uid &&
+              get(/databases/$(database)/documents/chatSessions/$(sessionId)).data.ownerId == request.auth.uid
+            )
+          );
+        allow list: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
+        allow create: if isVerifiedUser()
+          && isValidId(sessionId)
+          && isValidId(messageId)
+          && isValidChatMessage(incoming())
+          && incoming().id == messageId
+          && incoming().sessionId == sessionId
+          && incoming().ownerId == request.auth.uid
+          && incoming().createdAt == request.time
+          && exists(/databases/$(database)/documents/chatSessions/$(sessionId))
+          && get(/databases/$(database)/documents/chatSessions/$(sessionId)).data.ownerId == request.auth.uid
+          && get(/databases/$(database)/documents/chatSessions/$(sessionId)).data.status != 'archived';
+        allow update: if isAdmin() && isValidId(sessionId) && isValidId(messageId) && isValidChatMessage(incoming());
+        allow delete: if isVerifiedUser() && isValidId(sessionId) && isValidId(messageId) && (existing().ownerId == request.auth.uid || isAdmin());
+      }
+    }
+
+    // Audio transcription voice notes
+    match /voiceNotes/{noteId} {
+      allow get: if isValidId(noteId) && isSignedIn() && (existing().ownerId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
+      allow create: if isVerifiedUser()
+        && isValidId(noteId)
+        && isValidVoiceNote(incoming())
+        && incoming().id == noteId
+        && incoming().ownerId == request.auth.uid
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isVerifiedUser()
+        && isValidId(noteId)
+        && isValidVoiceNote(incoming())
+        && (
+          isAdmin() ||
+          (
+            existing().ownerId == request.auth.uid
+            && incoming().id == existing().id
+            && incoming().ownerId == existing().ownerId
+            && incoming().createdAt == existing().createdAt
+            && incoming().updatedAt == request.time
+            && incoming().diff(existing()).affectedKeys().hasOnly(['title', 'transcript', 'personaContext', 'updatedAt'])
+          )
+        );
+      allow delete: if isVerifiedUser() && isValidId(noteId) && (existing().ownerId == request.auth.uid || isAdmin());
+    }
+  }
+}

@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ShieldCheck, Laptop, Wifi, Sparkles, ArrowRight } from 'lucide-react';
+import heroWorkspaceImg from '../assets/images/cozy_intern_hero_1793543619075.jpg';
+import studioFallbackImg from '../assets/images/cozy_company_studio_1793543620067.jpg';
 
 interface HeroProps {
   onExploreClick: () => void;
@@ -8,6 +10,7 @@ interface HeroProps {
 }
 
 export const Hero: React.FC<HeroProps> = ({ onExploreClick, onTrackerClick, roleCount }) => {
+  const [heroImgSrc, setHeroImgSrc] = useState<string>(heroWorkspaceImg);
   return (
     <section className="relative overflow-hidden pt-8 pb-12 md:py-16">
       {/* Gentle ambient background glow */}
@@ -79,12 +82,16 @@ export const Hero: React.FC<HeroProps> = ({ onExploreClick, onTrackerClick, role
             <div className="relative group">
               <div className="absolute -inset-2 bg-gradient-to-r from-[#7C6CF0]/20 to-[#FF8A65]/20 rounded-3xl blur-xl opacity-75 group-hover:opacity-100 transition duration-500" />
               
-              <div className="relative overflow-hidden rounded-3xl bg-white dark:bg-[#26223A] border border-white/60 dark:border-[#3D3759] shadow-xl">
+              <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#7C6CF0]/20 via-[#FFF8F0] to-[#FF8A65]/20 dark:from-[#26223A] dark:to-[#1E1A2C] border border-white/60 dark:border-[#3D3759] shadow-xl">
                 <img
-                  src="/src/assets/images/cozy_intern_hero_1793543619075.jpg"
+                  src={heroImgSrc}
                   alt="Remote student study workspace in India"
+                  onError={() => {
+                    if (heroImgSrc !== studioFallbackImg) {
+                      setHeroImgSrc(studioFallbackImg);
+                    }
+                  }}
                   className="w-full h-72 sm:h-84 object-cover object-center transform group-hover:scale-102 transition duration-700"
-                  referrerPolicy="no-referrer"
                 />
 
                 <div className="absolute bottom-4 left-4 right-4 p-4 rounded-2xl bg-white/95 dark:bg-[#26223A]/95 backdrop-blur-md border border-white/40 dark:border-[#3D3759] shadow-lg flex items-center justify-between">

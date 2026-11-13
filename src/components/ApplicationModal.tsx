@@ -16,8 +16,6 @@ export const ApplicationModal: React.FC<ApplicationModalProps> = ({
   onClose,
   onSuccess
 }) => {
-  if (!internship) return null;
-
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [fullName, setFullName] = useState(userProfile.name);
   const [university, setUniversity] = useState(userProfile.university);
@@ -27,10 +25,15 @@ export const ApplicationModal: React.FC<ApplicationModalProps> = ({
     'I love building thoughtful, accessible web tools. Recently I built a cozy study buddy app with clean React state and keyboard accessibility.'
   );
   const [resumeName, setResumeName] = useState(userProfile.uploadedResumeName);
-  const [notes, setNotes] = useState(`Excited about ${internship.company}'s focus on ${internship.culturePillars[0] || 'craft'}!`);
+  const [editingResume, setEditingResume] = useState(false);
+  const [notes, setNotes] = useState(
+    `Excited about ${internship?.company || 'this team'}'s focus on ${internship?.culturePillars[0] || 'craft'}!`
+  );
   const [submitting, setSubmitting] = useState(false);
   const [isDone, setIsDone] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+
+  if (!internship) return null;
 
   const handleSubmit = async () => {
     setSubmitting(true);
@@ -231,15 +234,29 @@ export const ApplicationModal: React.FC<ApplicationModalProps> = ({
                   Step 3: Attached Student Resume
                 </h4>
 
-                <div className="p-4 rounded-xl border-2 border-dashed border-[#7C6CF0]/30 dark:border-[#3D3759] bg-[#FFF8F0]/50 dark:bg-[#26223A]/50 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-[#7C6CF0]/15 dark:bg-[#A99CFF]/20 text-[#7C6CF0] dark:text-[#A99CFF] flex items-center justify-center">
+                <div className="p-4 rounded-xl border-2 border-dashed border-[#7C6CF0]/30 dark:border-[#3D3759] bg-[#FFF8F0]/50 dark:bg-[#26223A]/50 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="w-10 h-10 rounded-xl bg-[#7C6CF0]/15 dark:bg-[#A99CFF]/20 text-[#7C6CF0] dark:text-[#A99CFF] flex items-center justify-center shrink-0">
                       <FileText className="w-5 h-5" />
                     </div>
-                    <div>
-                      <div className="text-sm font-bold text-[#2D2A3E] dark:text-[#F2EEFF]">
-                        {resumeName}
-                      </div>
+                    <div className="flex-1 min-w-0">
+                      {editingResume ? (
+                        <input
+                          type="text"
+                          value={resumeName}
+                          onChange={(e) => setResumeName(e.target.value)}
+                          onBlur={() => setEditingResume(false)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') setEditingResume(false);
+                          }}
+                          autoFocus
+                          className="w-full px-2.5 py-1 rounded-lg bg-white dark:bg-[#1E1A2C] border border-[#7C6CF0]/30 text-xs font-semibold text-[#2D2A3E] dark:text-[#F2EEFF] focus:outline-none focus:ring-2 focus:ring-[#7C6CF0]"
+                        />
+                      ) : (
+                        <div className="text-sm font-bold text-[#2D2A3E] dark:text-[#F2EEFF] truncate">
+                          {resumeName}
+                        </div>
+                      )}
                       <div className="text-xs text-[#34D399] font-medium">
                         Verified PDF · Synced from Profile
                       </div>
@@ -247,13 +264,11 @@ export const ApplicationModal: React.FC<ApplicationModalProps> = ({
                   </div>
 
                   <button
-                    onClick={() => {
-                      const updated = prompt('Enter resume file name or URL:', resumeName);
-                      if (updated) setResumeName(updated);
-                    }}
-                    className="text-xs font-semibold text-[#7C6CF0] dark:text-[#A99CFF] hover:underline"
+                    type="button"
+                    onClick={() => setEditingResume((prev) => !prev)}
+                    className="text-xs font-semibold text-[#7C6CF0] dark:text-[#A99CFF] hover:underline shrink-0 cursor-pointer"
                   >
-                    Change
+                    {editingResume ? 'Done' : 'Change'}
                   </button>
                 </div>
 

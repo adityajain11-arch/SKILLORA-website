@@ -1,37 +1,43 @@
 import confetti from 'canvas-confetti';
 
 export function fireCelebrationConfetti() {
-  const colors = ['#7C6CF0', '#FF8A65', '#34D399', '#A99CFF', '#FFA07A'];
+  const colors = ['#7C6CF0', '#FF8A65', '#34D399', '#A99CFF', '#F2CB80'];
 
-  // Warm gentle burst
+  // Primary celebratory burst rendered above modals
   confetti({
-    particleCount: 50,
-    spread: 60,
-    origin: { y: 0.65 },
-    colors: colors,
-    ticks: 200,
+    particleCount: 65,
+    spread: 72,
+    origin: { y: 0.62 },
+    colors,
+    ticks: 220,
     gravity: 0.9,
-    scalar: 0.9,
-    shapes: ['circle', 'square']
+    scalar: 0.95,
+    shapes: ['circle', 'square'],
+    zIndex: 9999,
+    disableForReducedMotion: true,
   });
 
-  // Second gentle side flutter
-  setTimeout(() => {
+  // Secondary side cannons
+  window.setTimeout(() => {
     confetti({
-      particleCount: 30,
+      particleCount: 36,
       angle: 60,
-      spread: 55,
-      origin: { x: 0.2, y: 0.7 },
-      colors: colors,
-      scalar: 0.8
+      spread: 58,
+      origin: { x: 0.18, y: 0.68 },
+      colors,
+      scalar: 0.85,
+      zIndex: 9999,
+      disableForReducedMotion: true,
     });
     confetti({
-      particleCount: 30,
+      particleCount: 36,
       angle: 120,
-      spread: 55,
-      origin: { x: 0.8, y: 0.7 },
-      colors: colors,
-      scalar: 0.8
+      spread: 58,
+      origin: { x: 0.82, y: 0.68 },
+      colors,
+      scalar: 0.85,
+      zIndex: 9999,
+      disableForReducedMotion: true,
     });
-  }, 150);
+  }, 160);
 }

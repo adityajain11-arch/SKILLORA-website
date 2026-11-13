@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Internship, Application, UserProfile, AuthUser } from './types';
-import { Navbar } from './components/Navbar';
+import { Navbar, AppTab } from './components/Navbar';
 import { Hero } from './components/Hero';
 import { SearchAndFilters } from './components/SearchAndFilters';
 import { InternshipCard } from './components/InternshipCard';
@@ -12,11 +12,45 @@ import { ProfileView } from './components/ProfileView';
 import { LoginPage } from './components/LoginPage';
 import { AdminLoginPage } from './components/AdminLoginPage';
 import { AdminDashboard } from './components/AdminDashboard';
+import { AiCoachView } from './components/AiCoachView';
+import { auth } from './lib/firebase';
 import { Sparkles, Bookmark, UserCheck, Laptop } from 'lucide-react';
 
+const VALID_TABS: AppTab[] = [
+  'discover',
+  'tracker',
+  'reviews',
+  'coach',
+  'profile',
+  'login',
+  'admin-login',
+  'admin',
+];
+
+const ACTIVE_TAB_KEY = 'workvanta_active_tab';
+
+function getInitialTab(): AppTab {
+  if (typeof window === 'undefined') return 'login';
+  const hashTab = window.location.hash.replace(/^#/, '') as AppTab;
+  if (VALID_TABS.includes(hashTab)) return hashTab;
+  const savedTab = localStorage.getItem(ACTIVE_TAB_KEY) as AppTab | null;
+  if (savedTab && VALID_TABS.includes(savedTab)) return savedTab;
+  return 'login';
+}
+
 export default function App() {
-  // Login screen is presented at first before reaching main page
-  const [currentTab, setCurrentTab] = useState<'discover' | 'tracker' | 'reviews' | 'profile' | 'login' | 'admin-login' | 'admin'>('login');
+  // Restore last active view on refresh (defaults to login on first visit)
+  const [currentTab, setCurrentTabState] = useState<AppTab>(getInitialTab);
+  const setCurrentTab = (tab: AppTab) => {
+    setCurrentTabState(tab);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(ACTIVE_TAB_KEY, tab);
+      if (window.location.hash !== `#${tab}`) {
+        window.history.replaceState(null, '', `#${tab}`);
+      }
+    }
+  };
+
   const [isDark, setIsDark] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('haven_theme') === 'dark';
@@ -26,6 +60,7 @@ export default function App() {
 
   // Private session: starts as null unless logged in
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+  const [authChecking, setAuthChecking] = useState<boolean>(true);
 
   const [internships, setInternships] = useState<Internship[]>([]);
   const [bookmarks, setBookmarks] = useState<string[]>([]);
@@ -75,35 +110,65 @@ export default function App() {
     return token ? { Authorization: `Bearer ${token}` } : {};
   };
 
-  // Fetch initial data from Express backend with token
+  // Fetch initial data from Express backend with persistent signed token
   const fetchAuthUser = async () => {
-    const token = typeof window !== 'undefined' ? localStorage.getItem(TOKEN_KEY) : null;
-    if (!token) {
-      setCurrentUser(null);
-      return;
-    }
-
+    setAuthChecking(true);
     try {
-      const res = await fetch('/api/auth/me', {
-        headers: getAuthHeaders()
-      });
-      if (res.status === 401) {
-        localStorage.removeItem(TOKEN_KEY);
-        setCurrentUser(null);
-        setApplications([]);
-        setBookmarks([]);
-        return;
+      const token = typeof window !== 'undefined' ? localStorage.getItem(TOKEN_KEY) : null;
+      if (token) {
+        const res = await fetch('/api/auth/me', {
+          headers: getAuthHeaders()
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.user) {
+            setCurrentUser(data.user);
+            fetchApplications();
+            fetchBookmarks();
+            fetchProfile();
+            return;
+          }
+        }
+        if (res.status === 401) {
+          localStorage.removeItem(TOKEN_KEY);
+        }
       }
-      const data = await res.json();
-      if (data.success && data.user) {
-        setCurrentUser(data.user);
-        // Automatically fetch isolated private data for this user
-        fetchApplications();
-        fetchBookmarks();
-        fetchProfile();
+
+      // Recover Firebase Google Sign-In session if present
+      if (typeof auth.authStateReady === 'function') {
+        await auth.authStateReady();
       }
+      if (auth.currentUser) {
+        try {
+          const idToken = await auth.currentUser.getIdToken();
+          const gRes = await fetch('/api/auth/google', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ idToken }),
+          });
+          if (gRes.ok) {
+            const gData = await gRes.json();
+            if (gData.success && gData.user && gData.token) {
+              localStorage.setItem(TOKEN_KEY, gData.token);
+              setCurrentUser(gData.user);
+              fetchApplications();
+              fetchBookmarks();
+              fetchProfile();
+              return;
+            }
+          }
+        } catch (fbErr) {
+          console.warn('Firebase session recovery skipped:', fbErr);
+        }
+      }
+
+      setCurrentUser(null);
+      setApplications([]);
+      setBookmarks([]);
     } catch (err) {
       console.error('Failed to fetch auth user', err);
+    } finally {
+      setAuthChecking(false);
     }
   };
 
@@ -228,10 +293,12 @@ export default function App() {
         method: 'POST',
         headers: getAuthHeaders()
       });
+      await auth.signOut().catch(() => {});
     } catch (err) {
       console.error(err);
     } finally {
       localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem('workvanta_admin_subtab');
       setCurrentUser(null);
       setApplications([]);
       setBookmarks([]);
@@ -491,6 +558,14 @@ export default function App() {
 
         {currentTab === 'reviews' && <ReviewsView />}
 
+        {currentTab === 'coach' && (
+          <AiCoachView
+            internships={internships}
+            currentUser={currentUser}
+            onGoogleSessionLinked={handleLoginSuccess}
+          />
+        )}
+
         {currentTab === 'profile' && (
           <ProfileView
             userProfile={userProfile}
@@ -502,6 +577,7 @@ export default function App() {
         {currentTab === 'admin' && (
           <AdminDashboard
             currentUser={currentUser}
+            authChecking={authChecking}
             onBackToDiscover={() => setCurrentTab('discover')}
             onNavigateToAdminLogin={() => setCurrentTab('admin-login')}
             onInternshipsUpdated={fetchInternships}
@@ -555,6 +631,9 @@ export default function App() {
             </button>
             <button onClick={() => setCurrentTab('reviews')} className="hover:text-[#7C6CF0] transition-colors cursor-pointer">
               Reviews
+            </button>
+            <button onClick={() => setCurrentTab('coach')} className="hover:text-[#7C6CF0] transition-colors cursor-pointer">
+              AI Coach & Voice
             </button>
             {currentUser?.role === 'admin' && (
               <button onClick={() => setCurrentTab('admin')} className="hover:text-emerald-500 transition-colors font-bold text-emerald-600 dark:text-emerald-400 cursor-pointer">

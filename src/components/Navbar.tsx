@@ -2,9 +2,19 @@ import React, { useState } from 'react';
 import { Sparkles, Moon, Sun, LogIn, LogOut, User, ChevronDown } from 'lucide-react';
 import { AuthUser } from '../types';
 
+export type AppTab =
+  | 'discover'
+  | 'tracker'
+  | 'reviews'
+  | 'coach'
+  | 'profile'
+  | 'login'
+  | 'admin-login'
+  | 'admin';
+
 interface NavbarProps {
-  currentTab: 'discover' | 'tracker' | 'reviews' | 'profile' | 'login' | 'admin-login' | 'admin';
-  setCurrentTab: (tab: 'discover' | 'tracker' | 'reviews' | 'profile' | 'login' | 'admin-login' | 'admin') => void;
+  currentTab: AppTab;
+  setCurrentTab: (tab: AppTab) => void;
   isDark: boolean;
   setIsDark: (dark: boolean) => void;
   savedCount: number;
@@ -89,6 +99,20 @@ export const Navbar: React.FC<NavbarProps> = ({
           >
             Real Reviews
             {currentTab === 'reviews' && (
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#7C6CF0] dark:bg-[#A99CFF] rounded-full" />
+            )}
+          </button>
+
+          <button
+            onClick={() => setCurrentTab('coach')}
+            className={`whitespace-nowrap shrink-0 transition-colors py-1 relative ${
+              currentTab === 'coach'
+                ? 'text-[#7C6CF0] dark:text-[#A99CFF] font-semibold'
+                : 'text-[#6B6880] dark:text-[#A5A0BA] hover:text-[#2D2A3E] dark:hover:text-[#F2EEFF]'
+            }`}
+          >
+            AI Coach & Voice
+            {currentTab === 'coach' && (
               <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#7C6CF0] dark:bg-[#A99CFF] rounded-full" />
             )}
           </button>

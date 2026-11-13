@@ -39,22 +39,40 @@ export async function getUserByUid(uid: string) {
 
 export async function getOrCreateFirebaseUser(uid: string, email: string, name?: string) {
   try {
+    const normalizedEmail = email.toLowerCase();
+    const now = new Date();
+
     // Check if user with this UID exists
     const existingByUid = await getUserByUid(uid);
     if (existingByUid) {
-      return existingByUid;
+      const updated = await db
+        .update(users)
+        .set({
+          lastLoginAt: now,
+          loginCount: (existingByUid.loginCount ?? 0) + 1,
+          authProvider: existingByUid.authProvider || 'google',
+          ...(name && !existingByUid.name ? { name } : {}),
+        })
+        .where(eq(users.id, existingByUid.id))
+        .returning();
+      return updated[0] || existingByUid;
     }
 
     // Check if user with this email exists
-    const existingByEmail = await getUserByEmail(email);
+    const existingByEmail = await getUserByEmail(normalizedEmail);
     if (existingByEmail) {
-      // Link Firebase UID to existing account
+      // Link Firebase UID to existing account and record login
       const updated = await db
         .update(users)
-        .set({ uid })
+        .set({
+          uid,
+          lastLoginAt: now,
+          loginCount: (existingByEmail.loginCount ?? 0) + 1,
+          authProvider: existingByEmail.authProvider || 'google',
+        })
         .where(eq(users.id, existingByEmail.id))
         .returning();
-      return updated[0];
+      return updated[0] || existingByEmail;
     }
 
     // Insert new user
@@ -64,8 +82,8 @@ export async function getOrCreateFirebaseUser(uid: string, email: string, name?:
       .values({
         id,
         uid,
-        name: name || email.split('@')[0],
-        email: email.toLowerCase(),
+        name: name || normalizedEmail.split('@')[0],
+        email: normalizedEmail,
         university: 'University in India',
         major: 'Computer Science',
         gradYear: '2027',
@@ -79,6 +97,9 @@ export async function getOrCreateFirebaseUser(uid: string, email: string, name?:
         githubUrl: 'https://github.com',
         linkedinUrl: 'https://linkedin.com',
         uploadedResumeName: `${(name || 'Fellow').replace(/\s+/g, '_')}_Resume.pdf`,
+        authProvider: 'google',
+        loginCount: 1,
+        lastLoginAt: now,
       })
       .returning();
 
@@ -86,6 +107,26 @@ export async function getOrCreateFirebaseUser(uid: string, email: string, name?:
   } catch (error) {
     console.error('Error in getOrCreateFirebaseUser:', error);
     throw new Error('Database query failed for getOrCreateFirebaseUser', { cause: error });
+  }
+}
+
+export async function recordUserLogin(userId: string, provider?: string) {
+  try {
+    const existing = await getUserById(userId);
+    if (!existing) return null;
+    const rows = await db
+      .update(users)
+      .set({
+        lastLoginAt: new Date(),
+        loginCount: (existing.loginCount ?? 0) + 1,
+        ...(provider && !existing.authProvider ? { authProvider: provider } : {}),
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    return rows[0] || existing;
+  } catch (error) {
+    console.error('Error in recordUserLogin:', error);
+    return null;
   }
 }
 
@@ -143,21 +184,30 @@ export async function updateUserProfile(userId: string, updates: Partial<typeof 
 export async function getAllUsersForAdmin() {
   try {
     const rows = await db.select().from(users);
-    return rows.map((u) => ({
-      id: u.id,
-      uid: u.uid,
-      name: u.name,
-      email: u.email,
-      university: u.university || 'University in India',
-      major: u.major || 'Computer Science',
-      gradYear: u.gradYear || '2027',
-      bio: u.bio || '',
-      skills: (u.skills as string[]) || [],
-      preferredRoles: (u.preferredRoles as string[]) || [],
-      preferredWorkType: u.preferredWorkType || 'Remote',
-      createdAt: u.createdAt,
-      role: u.email?.toLowerCase() === 'admin@workvanta.in' ? 'admin' : 'student'
-    })).sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+    return rows
+      .map((u) => ({
+        id: u.id,
+        uid: u.uid,
+        name: u.name,
+        email: u.email,
+        university: u.university || 'University in India',
+        major: u.major || 'Computer Science',
+        gradYear: u.gradYear || '2027',
+        bio: u.bio || '',
+        skills: (u.skills as string[]) || [],
+        preferredRoles: (u.preferredRoles as string[]) || [],
+        preferredWorkType: u.preferredWorkType || 'Remote',
+        authProvider: u.authProvider || (u.uid ? 'google' : 'email'),
+        loginCount: u.loginCount ?? 1,
+        lastLoginAt: u.lastLoginAt || u.createdAt,
+        createdAt: u.createdAt,
+        role: u.email?.toLowerCase() === 'admin@workvanta.in' ? 'admin' : 'student',
+      }))
+      .sort((a, b) => {
+        const bTime = new Date(b.lastLoginAt || b.createdAt || 0).getTime();
+        const aTime = new Date(a.lastLoginAt || a.createdAt || 0).getTime();
+        return bTime - aTime;
+      });
   } catch (error) {
     console.error('Error in getAllUsersForAdmin:', error);
     throw new Error('Database query failed for getAllUsersForAdmin', { cause: error });

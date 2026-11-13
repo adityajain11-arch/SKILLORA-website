@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Application, OfferLetter } from '../types';
 import { OfferLetterModal } from './OfferLetterModal';
+import { CompanyLogo } from './CompanyLogo';
 import { Calendar, Clock, Edit3, Trash2, ArrowRight, CheckCircle2, AlertCircle, Sparkles, Plus, ExternalLink, Award } from 'lucide-react';
 import { fireCelebrationConfetti } from '../utils/confetti';
 
@@ -136,12 +137,13 @@ export const ApplicationTracker: React.FC<ApplicationTrackerProps> = ({
                       {/* Company & Role */}
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex items-center gap-2.5">
-                          <img
-                            src={app.companyLogo}
-                            alt={app.company}
-                            className="w-8 h-8 rounded-xl object-cover border border-[#7C6CF0]/10 dark:border-[#3D3759]"
-                            referrerPolicy="no-referrer"
-                          />
+                          <div className="w-8 h-8 rounded-xl overflow-hidden border border-[#7C6CF0]/10 dark:border-[#3D3759] shrink-0">
+                            <CompanyLogo
+                              src={app.companyLogo}
+                              company={app.company}
+                              className="w-full h-full object-cover rounded-xl"
+                            />
+                          </div>
                           <div>
                             <div className="text-xs font-bold text-[#7C6CF0] dark:text-[#A99CFF]">
                               {app.company}

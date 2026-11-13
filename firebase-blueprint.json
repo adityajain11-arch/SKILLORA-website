@@ -1,0 +1,278 @@
+{
+  "entities": {
+    "UserPublicProfile": {
+      "title": "UserPublicProfile",
+      "description": "Public-safe student profile attributes stored in Firestore.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "university": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "photoUrl": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "displayName", "university", "createdAt", "updatedAt"]
+    },
+    "UserPrivateInfo": {
+      "title": "UserPrivateInfo",
+      "description": "Isolated PII document for authenticated Workvanta users.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "gradYear": {
+          "type": "string",
+          "maxLength": 20
+        },
+        "major": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "email", "updatedAt"]
+    },
+    "AdminRoleRecord": {
+      "title": "AdminRoleRecord",
+      "description": "Server-managed administrator role marker.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "email", "createdAt"]
+    },
+    "AiChatSession": {
+      "title": "AiChatSession",
+      "description": "Multi-turn Gemini Career Coach conversation thread owned by a user.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 140
+        },
+        "persona": {
+          "type": "string",
+          "enum": ["coach", "interviewer", "resume"]
+        },
+        "model": {
+          "type": "string",
+          "enum": ["gemini-4-hydrogen", "gemini-3.1-flash-lite"]
+        },
+        "contextRole": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "messageCount": {
+          "type": "integer"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["active", "archived"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "ownerId",
+        "title",
+        "persona",
+        "model",
+        "messageCount",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "AiChatMessage": {
+      "title": "AiChatMessage",
+      "description": "Individual conversation turn inside a chat session subcollection.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "sessionId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "role": {
+          "type": "string",
+          "enum": ["user", "model"]
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 12000
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["id", "sessionId", "ownerId", "role", "text", "createdAt"]
+    },
+    "VoiceTranscriptNote": {
+      "title": "VoiceTranscriptNote",
+      "description": "Audio transcription note generated with Gemini 3.5 Transcribe.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 140
+        },
+        "transcript": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 16000
+        },
+        "durationSec": {
+          "type": "integer"
+        },
+        "mimeType": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "personaContext": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "ownerId",
+        "title",
+        "transcript",
+        "durationSec",
+        "mimeType",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": {
+        "$ref": "#/entities/UserPublicProfile"
+      },
+      "description": "Public-safe user profile documents."
+    },
+    "/users/{userId}/private/{docId}": {
+      "schema": {
+        "$ref": "#/entities/UserPrivateInfo"
+      },
+      "description": "Strictly isolated PII subcollection readable only by owner or admin."
+    },
+    "/admins/{userId}": {
+      "schema": {
+        "$ref": "#/entities/AdminRoleRecord"
+      },
+      "description": "Administrator role registry."
+    },
+    "/chatSessions/{sessionId}": {
+      "schema": {
+        "$ref": "#/entities/AiChatSession"
+      },
+      "description": "User-owned Gemini multi-turn chat sessions."
+    },
+    "/chatSessions/{sessionId}/messages/{messageId}": {
+      "schema": {
+        "$ref": "#/entities/AiChatMessage"
+      },
+      "description": "Ordered turns inside a user chat session."
+    },
+    "/voiceNotes/{noteId}": {
+      "schema": {
+        "$ref": "#/entities/VoiceTranscriptNote"
+      },
+      "description": "User-owned audio transcription notes."
+    }
+  }
+}

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Application, OfferLetter, AuthUser, Internship } from '../types';
 import { OfferLetterModal } from './OfferLetterModal';
+import { CompanyLogo } from './CompanyLogo';
 import { 
   Users, 
   Sparkles, 
@@ -39,18 +40,36 @@ interface AdminDashboardProps {
   onBackToDiscover: () => void;
   onNavigateToAdminLogin: () => void;
   currentUser: AuthUser | null;
+  authChecking?: boolean;
   onInternshipsUpdated?: () => void;
 }
 
 type AdminTab = 'applicants' | 'internships' | 'users';
+const ADMIN_SUBTAB_KEY = 'workvanta_admin_subtab';
+
+function getInitialAdminTab(): AdminTab {
+  if (typeof window === 'undefined') return 'applicants';
+  const saved = localStorage.getItem(ADMIN_SUBTAB_KEY) as AdminTab | null;
+  if (saved === 'applicants' || saved === 'internships' || saved === 'users') {
+    return saved;
+  }
+  return 'applicants';
+}
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ 
   onBackToDiscover, 
   onNavigateToAdminLogin,
   currentUser,
+  authChecking = false,
   onInternshipsUpdated
 }) => {
-  const [activeTab, setActiveTab] = useState<AdminTab>('applicants');
+  const [activeTab, setActiveTabState] = useState<AdminTab>(getInitialAdminTab);
+  const setActiveTab = (tab: AdminTab) => {
+    setActiveTabState(tab);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(ADMIN_SUBTAB_KEY, tab);
+    }
+  };
 
   // Applicants state
   const [applicants, setApplicants] = useState<Application[]>([]);
@@ -62,7 +81,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   // Users state
   const [registeredUsers, setRegisteredUsers] = useState<any[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
+  const [usersError, setUsersError] = useState<string | null>(null);
   const [userSearchQuery, setUserSearchQuery] = useState('');
+  const [userUniversityFilter, setUserUniversityFilter] = useState('All');
+  const [userGradYearFilter, setUserGradYearFilter] = useState('All');
+  const [userRoleFilter, setUserRoleFilter] = useState<'All' | 'student' | 'admin'>('All');
 
   // Internships state
   const [internshipsList, setInternshipsList] = useState<Internship[]>([]);
@@ -120,6 +143,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   // Fetch Applicants
   const fetchApplicants = async () => {
+    if (authChecking && !currentUser) return;
     if (!currentUser || currentUser.role !== 'admin') {
       setAccessDenied(true);
       setLoading(false);
@@ -149,17 +173,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   // Fetch Registered Users
   const fetchUsers = async () => {
+    if (!currentUser || currentUser.role !== 'admin') return;
     setLoadingUsers(true);
+    setUsersError(null);
     try {
       const res = await fetch('/api/admin/users', {
         headers: getAuthHeaders()
       });
+      if (res.status === 401 || res.status === 403) {
+        setAccessDenied(true);
+        return;
+      }
+      if (!res.ok) {
+        setUsersError('Could not refresh user directory from PostgreSQL.');
+        return;
+      }
       const data = await res.json();
-      if (data.success) {
-        setRegisteredUsers(data.data || []);
+      if (data.success && Array.isArray(data.data)) {
+        setRegisteredUsers(data.data);
       }
     } catch (err) {
       console.error('Failed to fetch registered users', err);
+      setUsersError('Network error while loading user directory.');
     } finally {
       setLoadingUsers(false);
     }
@@ -184,9 +219,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   };
 
   useEffect(() => {
+    if (authChecking) return;
     fetchApplicants();
     fetchUsers();
     fetchInternships();
+  }, [currentUser, authChecking]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !currentUser || currentUser.role !== 'admin') return;
+    const handleFocus = () => {
+      fetchUsers();
+      fetchApplicants();
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
   }, [currentUser]);
 
   // Handle Open Offer Composer
@@ -322,7 +368,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setInternshipForm({
       title: '',
       company: '',
-      companyLogo: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&h=100&fit=crop&q=80',
+      companyLogo: '/logos/workvanta-default.svg',
       location: 'Remote — Pan-India',
       category: 'Software Engineering',
       friendlyDescription: '',
@@ -373,7 +419,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       const payload = {
         title: internshipForm.title,
         company: internshipForm.company,
-        companyLogo: internshipForm.companyLogo || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&h=100&fit=crop&q=80',
+        companyLogo: internshipForm.companyLogo || '/logos/workvanta-default.svg',
         location: internshipForm.location || 'Remote — India',
         category: internshipForm.category,
         friendlyDescription: internshipForm.friendlyDescription || 'Exciting remote fellowship opportunity in India.',
@@ -459,15 +505,55 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     return true;
   });
 
+  // Derived filter options for User Signups
+  const uniqueUserUniversities = Array.from(
+    new Set(
+      registeredUsers
+        .map((u) => (u.university || '').trim())
+        .filter((val) => val.length > 0)
+    )
+  ).sort((a, b) => a.localeCompare(b));
+
+  const uniqueUserGradYears = Array.from(
+    new Set(
+      registeredUsers
+        .map((u) => String(u.gradYear || '').trim())
+        .filter((val) => val.length > 0)
+    )
+  ).sort((a, b) => a.localeCompare(b));
+
+  const hasActiveUserFilters =
+    userSearchQuery.trim() !== '' ||
+    userUniversityFilter !== 'All' ||
+    userGradYearFilter !== 'All' ||
+    userRoleFilter !== 'All';
+
+  const resetUserFilters = () => {
+    setUserSearchQuery('');
+    setUserUniversityFilter('All');
+    setUserGradYearFilter('All');
+    setUserRoleFilter('All');
+  };
+
   // Filter registered users
   const filteredUsers = registeredUsers.filter((u) => {
+    if (userUniversityFilter !== 'All' && (u.university || '').trim() !== userUniversityFilter) {
+      return false;
+    }
+    if (userGradYearFilter !== 'All' && String(u.gradYear || '').trim() !== userGradYearFilter) {
+      return false;
+    }
+    if (userRoleFilter !== 'All' && u.role !== userRoleFilter) {
+      return false;
+    }
     if (!userSearchQuery.trim()) return true;
     const q = userSearchQuery.toLowerCase();
     return (
       (u.name || '').toLowerCase().includes(q) ||
       (u.email || '').toLowerCase().includes(q) ||
       (u.university || '').toLowerCase().includes(q) ||
-      (u.major || '').toLowerCase().includes(q)
+      (u.major || '').toLowerCase().includes(q) ||
+      String(u.gradYear || '').toLowerCase().includes(q)
     );
   });
 
@@ -488,6 +574,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const appliedCount = applicants.filter((a) => a.stage === 'applied').length;
   const interviewingCount = applicants.filter((a) => a.stage === 'interviewing').length;
   const offerCount = applicants.filter((a) => a.stage === 'offer').length;
+
+  if (authChecking && !currentUser) {
+    return (
+      <div className="max-w-xl mx-auto my-16 p-10 rounded-3xl bg-white dark:bg-[#1E1A2C] border border-[#7C6CF0]/20 text-center shadow-xl space-y-4">
+        <div className="w-10 h-10 border-4 border-[#7C6CF0] border-t-transparent rounded-full animate-spin mx-auto" />
+        <h2 className="text-base font-bold text-[#2D2A3E] dark:text-[#F2EEFF]">
+          Restoring Admin Session...
+        </h2>
+        <p className="text-xs text-[#6B6880] dark:text-[#A5A0BA]">
+          Verifying persistent clearance against Workvanta PostgreSQL Auth Vault.
+        </p>
+      </div>
+    );
+  }
 
   if (accessDenied || !currentUser || currentUser.role !== 'admin') {
     return (
@@ -629,7 +729,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           }`}
         >
           <UserCheck className="w-4 h-4" />
-          <span>Registered Users & Logins</span>
+          <span>User Signups & Logins</span>
           <span className="px-2 py-0.5 rounded-full text-[10px] bg-cyan-500/15 text-cyan-600 dark:text-cyan-400">
             {registeredUsers.length}
           </span>
@@ -760,10 +860,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     
                     {/* Candidate & Role Profile */}
                     <div className="flex items-start sm:items-center gap-4 min-w-[320px]">
-                      <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-[#7C6CF0] to-[#FF8A65] p-0.5 shadow-xs shrink-0">
-                        <img
+                      <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-[#7C6CF0] to-[#FF8A65] p-0.5 shadow-xs shrink-0 overflow-hidden">
+                        <CompanyLogo
                           src={app.companyLogo}
-                          alt={app.company}
+                          company={app.company}
                           className="w-full h-full rounded-[14px] object-cover bg-white"
                         />
                       </div>
@@ -924,11 +1024,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <div className="space-y-3">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3">
-                      <img
-                        src={item.companyLogo}
-                        alt={item.company}
-                        className="w-12 h-12 rounded-2xl object-cover bg-white border border-[#7C6CF0]/10 shrink-0"
-                      />
+                      <div className="w-12 h-12 rounded-2xl bg-white border border-[#7C6CF0]/10 shrink-0 overflow-hidden">
+                        <CompanyLogo
+                          src={item.companyLogo}
+                          company={item.company}
+                          className="w-full h-full rounded-2xl object-cover"
+                        />
+                      </div>
                       <div>
                         <div className="text-xs font-bold text-[#7C6CF0] dark:text-[#A99CFF]">
                           {item.company}
@@ -995,36 +1097,116 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       )}
 
       {/* ======================================================== */}
-      {/* TAB 3: REGISTERED USERS & LOGINS AUDIT */}
+      {/* TAB 3: USER SIGNUPS & LOGINS AUDIT */}
       {/* ======================================================== */}
       {activeTab === 'users' && (
         <div className="space-y-6">
-          <div className="p-4 rounded-2xl bg-white dark:bg-[#26223A] border border-[#7C6CF0]/15 dark:border-[#3D3759] flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-[#26223A] border border-[#7C6CF0]/15 dark:border-[#3D3759] space-y-4">
             
-            {/* Search Users */}
-            <div className="relative w-full md:w-80">
-              <Search className="w-4 h-4 text-[#6B6880] absolute left-3.5 top-3" />
-              <input
-                type="text"
-                value={userSearchQuery}
-                onChange={(e) => setUserSearchQuery(e.target.value)}
-                placeholder="Search by name, email, or college..."
-                className="w-full pl-10 pr-4 py-2 text-xs rounded-xl bg-[#FFF8F0]/80 dark:bg-[#1E1A2C] border border-[#7C6CF0]/15 text-[#2D2A3E] dark:text-[#F2EEFF] focus:outline-none focus:ring-2 focus:ring-[#7C6CF0]"
-              />
+            {/* Search & Dropdown Filters Row */}
+            <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3">
+              {/* Search Users by Name, University, Grad Year, Email */}
+              <div className="relative flex-1 min-w-[240px]">
+                <Search className="w-4 h-4 text-[#6B6880] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type="text"
+                  value={userSearchQuery}
+                  onChange={(e) => setUserSearchQuery(e.target.value)}
+                  placeholder="Search students by name, university, grad year, or email..."
+                  aria-label="Search students by name, university, graduation year, or email"
+                  className="w-full pl-10 pr-9 py-2.5 text-xs rounded-xl bg-[#FFF8F0]/80 dark:bg-[#1E1A2C] border border-[#7C6CF0]/15 text-[#2D2A3E] dark:text-[#F2EEFF] focus:outline-none focus:ring-2 focus:ring-[#7C6CF0]"
+                />
+                {userSearchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setUserSearchQuery('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded-full text-[#6B6880] hover:text-[#2D2A3E] dark:hover:text-[#F2EEFF] cursor-pointer"
+                    title="Clear search"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Filter by University */}
+              <div className="relative sm:w-56">
+                <Building2 className="w-3.5 h-3.5 text-[#7C6CF0] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <select
+                  value={userUniversityFilter}
+                  onChange={(e) => setUserUniversityFilter(e.target.value)}
+                  aria-label="Filter by university"
+                  className="w-full pl-9 pr-3 py-2.5 text-xs font-semibold rounded-xl bg-[#FFF8F0]/80 dark:bg-[#1E1A2C] border border-[#7C6CF0]/15 text-[#2D2A3E] dark:text-[#F2EEFF] focus:outline-none focus:ring-2 focus:ring-[#7C6CF0] cursor-pointer"
+                >
+                  <option value="All">All Universities</option>
+                  {uniqueUserUniversities.map((uni) => (
+                    <option key={uni} value={uni}>
+                      {uni}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Filter by Graduation Year */}
+              <div className="relative sm:w-44">
+                <GraduationCap className="w-3.5 h-3.5 text-[#7C6CF0] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <select
+                  value={userGradYearFilter}
+                  onChange={(e) => setUserGradYearFilter(e.target.value)}
+                  aria-label="Filter by graduation year"
+                  className="w-full pl-9 pr-3 py-2.5 text-xs font-semibold rounded-xl bg-[#FFF8F0]/80 dark:bg-[#1E1A2C] border border-[#7C6CF0]/15 text-[#2D2A3E] dark:text-[#F2EEFF] focus:outline-none focus:ring-2 focus:ring-[#7C6CF0] cursor-pointer"
+                >
+                  <option value="All">All Grad Years</option>
+                  {uniqueUserGradYears.map((yr) => (
+                    <option key={yr} value={yr}>
+                      {yr === 'Staff' ? 'Staff' : `Class of ${yr}`}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Filter by Role */}
+              <div className="relative sm:w-40">
+                <Filter className="w-3.5 h-3.5 text-[#7C6CF0] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <select
+                  value={userRoleFilter}
+                  onChange={(e) => setUserRoleFilter(e.target.value as 'All' | 'student' | 'admin')}
+                  aria-label="Filter by account role"
+                  className="w-full pl-9 pr-3 py-2.5 text-xs font-semibold rounded-xl bg-[#FFF8F0]/80 dark:bg-[#1E1A2C] border border-[#7C6CF0]/15 text-[#2D2A3E] dark:text-[#F2EEFF] focus:outline-none focus:ring-2 focus:ring-[#7C6CF0] cursor-pointer"
+                >
+                  <option value="All">All Accounts</option>
+                  <option value="student">Students Only</option>
+                  <option value="admin">Staff Admins</option>
+                </select>
+              </div>
             </div>
 
-            <div className="flex items-center gap-4 text-xs text-[#6B6880] dark:text-[#A5A0BA]">
-              <span>
-                Total Accounts: <strong className="text-[#2D2A3E] dark:text-[#F2EEFF]">{registeredUsers.length}</strong>
-              </span>
-              <span>·</span>
-              <span>
-                Students: <strong className="text-[#7C6CF0]">{registeredUsers.filter(u => u.role !== 'admin').length}</strong>
-              </span>
-              <span>·</span>
-              <span>
-                Staff Admins: <strong className="text-emerald-500">{registeredUsers.filter(u => u.role === 'admin').length}</strong>
-              </span>
+            {/* Summary Metrics & Reset Bar */}
+            <div className="pt-3 border-t border-[#7C6CF0]/10 dark:border-[#3D3759] flex flex-wrap items-center justify-between gap-3 text-xs text-[#6B6880] dark:text-[#A5A0BA]">
+              <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+                <span>
+                  Showing <strong className="text-[#2D2A3E] dark:text-[#F2EEFF]">{filteredUsers.length}</strong> of{' '}
+                  <strong className="text-[#2D2A3E] dark:text-[#F2EEFF]">{registeredUsers.length}</strong> signups
+                </span>
+                <span>·</span>
+                <span>
+                  Students: <strong className="text-[#7C6CF0]">{registeredUsers.filter(u => u.role !== 'admin').length}</strong>
+                </span>
+                <span>·</span>
+                <span>
+                  Staff Admins: <strong className="text-emerald-500">{registeredUsers.filter(u => u.role === 'admin').length}</strong>
+                </span>
+              </div>
+
+              {hasActiveUserFilters && (
+                <button
+                  type="button"
+                  onClick={resetUserFilters}
+                  className="px-3 py-1 rounded-lg text-[11px] font-bold text-[#7C6CF0] dark:text-[#A99CFF] bg-[#7C6CF0]/10 hover:bg-[#7C6CF0]/20 transition-colors flex items-center gap-1 cursor-pointer"
+                >
+                  <X className="w-3 h-3" />
+                  <span>Reset Filters</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -1034,7 +1216,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <div className="flex items-center gap-2">
                 <UserCheck className="w-4 h-4 text-cyan-500" />
                 <h3 className="text-sm font-bold text-[#2D2A3E] dark:text-[#F2EEFF]">
-                  Verified Account Registry & Logins ({filteredUsers.length})
+                  User Signups & Verified Logins ({filteredUsers.length})
                 </h3>
               </div>
               <span className="text-[11px] text-[#6B6880] dark:text-[#A5A0BA]">
@@ -1042,13 +1224,43 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </span>
             </div>
 
-            {loadingUsers ? (
+            {usersError && (
+              <div className="mx-5 mt-4 p-3 rounded-xl bg-amber-500/10 border border-amber-500/25 text-xs text-amber-700 dark:text-amber-300 flex items-center justify-between">
+                <span>{usersError}</span>
+                <button
+                  type="button"
+                  onClick={fetchUsers}
+                  className="font-bold underline cursor-pointer"
+                >
+                  Retry
+                </button>
+              </div>
+            )}
+
+            {loadingUsers && registeredUsers.length === 0 ? (
               <div className="p-12 text-center text-xs text-[#6B6880]">
                 Loading verified accounts from PostgreSQL...
               </div>
             ) : filteredUsers.length === 0 ? (
-              <div className="p-12 text-center text-[#6B6880] text-xs">
-                No registered users match your query.
+              <div className="p-12 text-center text-[#6B6880] dark:text-[#A5A0BA] space-y-3">
+                <Users className="w-8 h-8 mx-auto text-[#7C6CF0]/40" />
+                <div className="space-y-1">
+                  <p className="text-sm font-semibold text-[#2D2A3E] dark:text-[#F2EEFF]">
+                    No students or accounts match your filters
+                  </p>
+                  <p className="text-xs">
+                    Try adjusting the name search, university, or graduation year filter.
+                  </p>
+                </div>
+                {hasActiveUserFilters && (
+                  <button
+                    type="button"
+                    onClick={resetUserFilters}
+                    className="px-4 py-2 rounded-full text-xs font-bold bg-[#7C6CF0]/10 hover:bg-[#7C6CF0]/20 text-[#7C6CF0] dark:text-[#A99CFF] transition-colors cursor-pointer"
+                  >
+                    Clear Search & Filters
+                  </button>
+                )}
               </div>
             ) : (
               <div className="divide-y divide-[#7C6CF0]/10 dark:divide-[#3D3759] overflow-x-auto">
@@ -1066,7 +1278,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         </div>
 
                         <div className="space-y-0.5">
-                          <div className="flex items-center gap-2">
+                          <div className="flex flex-wrap items-center gap-2">
                             <span className="font-bold text-sm text-[#2D2A3E] dark:text-[#F2EEFF]">
                               {u.name}
                             </span>
@@ -1078,6 +1290,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               }`}
                             >
                               {u.role === 'admin' ? 'Admissions Lead' : 'Student Fellow'}
+                            </span>
+                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-[#1E1A2C] text-[#6B6880] dark:text-[#A5A0BA] border border-[#7C6CF0]/15">
+                              {u.authProvider === 'google' ? 'Google Auth' : u.authProvider === 'admin' ? 'Admin Vault' : 'Email Auth'}
                             </span>
                           </div>
 
@@ -1096,15 +1311,35 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                       <div className="flex flex-wrap items-center gap-3">
                         <div className="px-3 py-1.5 rounded-xl bg-[#FFF8F0] dark:bg-[#1E1A2C] border border-[#7C6CF0]/15 text-center">
+                          <span className="text-[10px] text-[#6B6880] dark:text-[#A5A0BA] block">Logins</span>
+                          <span className="font-bold text-emerald-600 dark:text-emerald-400 text-xs">{u.loginCount ?? 1}x verified</span>
+                        </div>
+
+                        <div className="px-3 py-1.5 rounded-xl bg-[#FFF8F0] dark:bg-[#1E1A2C] border border-[#7C6CF0]/15 text-center">
                           <span className="text-[10px] text-[#6B6880] dark:text-[#A5A0BA] block">Applications</span>
                           <span className="font-bold text-[#7C6CF0] text-xs">{userAppsCount} submitted</span>
                         </div>
 
-                        {u.createdAt && (
-                          <div className="text-[11px] text-[#6B6880] dark:text-[#A5A0BA]">
-                            Joined: {new Date(u.createdAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' })}
-                          </div>
-                        )}
+                        <div className="text-[11px] text-[#6B6880] dark:text-[#A5A0BA] text-right space-y-0.5">
+                          {u.lastLoginAt && (
+                            <div>
+                              Last login:{' '}
+                              <span className="font-semibold text-[#2D2A3E] dark:text-[#F2EEFF]">
+                                {new Date(u.lastLoginAt).toLocaleString('en-IN', {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })}
+                              </span>
+                            </div>
+                          )}
+                          {u.createdAt && (
+                            <div className="text-[10px]">
+                              Joined: {new Date(u.createdAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' })}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   );
@@ -1325,10 +1560,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     Company Logo URL
                   </label>
                   <input
-                    type="url"
+                    type="text"
                     value={internshipForm.companyLogo}
                     onChange={(e) => setInternshipForm({ ...internshipForm, companyLogo: e.target.value })}
-                    placeholder="https://images.unsplash.com/..."
+                    placeholder="/logos/workvanta-default.svg or https://..."
                     className="w-full px-3.5 py-2.5 rounded-xl bg-[#FFF8F0]/80 dark:bg-[#1E1A2C] border border-[#7C6CF0]/20 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>

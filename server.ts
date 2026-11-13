@@ -5,7 +5,9 @@ import { fileURLToPath } from 'url';
 import crypto from 'crypto';
 import * as dotenv from 'dotenv';
 import { adminAuth } from './src/lib/firebase-admin.ts';
+import firebaseConfig from './firebase-applet-config.json';
 import * as dbQueries from './src/db/queries.ts';
+import { runMultiTurnChat, transcribeAudioBuffer } from './src/lib/gemini-server.ts';
 
 dotenv.config();
 
@@ -108,7 +110,7 @@ const initialInternships: Internship[] = [
     id: 'intern-01',
     title: 'Frontend Product Engineering Intern',
     company: 'Linear',
-    companyLogo: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&h=100&fit=crop&q=80',
+    companyLogo: '/logos/linear.svg',
     location: 'Remote — Bengaluru, India',
     workType: 'Remote',
     category: 'Software Engineering',
@@ -144,7 +146,7 @@ const initialInternships: Internship[] = [
     id: 'intern-02',
     title: 'Product Design Systems Intern',
     company: 'Figma',
-    companyLogo: 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=100&h=100&fit=crop&q=80',
+    companyLogo: '/logos/figma.svg',
     location: 'Remote — Mumbai, India',
     workType: 'Remote',
     category: 'Product Design',
@@ -180,7 +182,7 @@ const initialInternships: Internship[] = [
     id: 'intern-03',
     title: 'Climate Data & AI Systems Intern',
     company: 'Watershed Climate',
-    companyLogo: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=100&h=100&fit=crop&q=80',
+    companyLogo: '/logos/watershed.svg',
     location: 'Remote — Delhi NCR, India',
     workType: 'Remote',
     category: 'Data & AI',
@@ -216,7 +218,7 @@ const initialInternships: Internship[] = [
     id: 'intern-04',
     title: 'Developer Experience & Open Source Intern',
     company: 'Supabase',
-    companyLogo: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=100&h=100&fit=crop&q=80',
+    companyLogo: '/logos/supabase.svg',
     location: 'Remote — Pan-India',
     workType: 'Remote',
     category: 'Developer Relations',
@@ -252,7 +254,7 @@ const initialInternships: Internship[] = [
     id: 'intern-05',
     title: 'Associate Product Manager Intern',
     company: 'Duolingo',
-    companyLogo: 'https://images.unsplash.com/photo-1534972195531-a756b1126f24?w=100&h=100&fit=crop&q=80',
+    companyLogo: '/logos/duolingo.svg',
     location: 'Remote — Hyderabad, India',
     workType: 'Remote',
     category: 'Product Management',
@@ -288,7 +290,7 @@ const initialInternships: Internship[] = [
     id: 'intern-06',
     title: 'Full-Stack Creative Tools Intern',
     company: 'Canva',
-    companyLogo: 'https://images.unsplash.com/photo-1541701494587-cb58502866ab?w=100&h=100&fit=crop&q=80',
+    companyLogo: '/logos/canva.svg',
     location: 'Remote — Pune, India',
     workType: 'Remote',
     category: 'Software Engineering',
@@ -364,8 +366,15 @@ const initialReviews: Review[] = [
   }
 ];
 
-// Active sessions memory map
-const activeTokens = new Map<string, { userId: string; expiresAt: number }>();
+// Persistent HMAC-SHA256 session token signing (survives server restarts & page refreshes)
+const TOKEN_SECRET =
+  process.env.SESSION_SECRET ||
+  crypto
+    .createHash('sha256')
+    .update(String(process.env.SQL_PASSWORD || process.env.SQL_ADMIN_PASSWORD || 'workvanta-persistent-vault-2026'))
+    .digest('hex');
+
+const revokedTokens = new Set<string>();
 
 function generateSalt(): string {
   return crypto.randomBytes(16).toString('hex');
@@ -387,11 +396,86 @@ function verifyPassword(password: string, salt: string, storedHashHex: string): 
 }
 
 function generateSecureToken(userId: string): string {
-  const randomPart = crypto.randomBytes(32).toString('hex');
-  const token = `wkv_${randomPart}`;
-  const expiresAt = Date.now() + 7 * 24 * 60 * 60 * 1000;
-  activeTokens.set(token, { userId, expiresAt });
-  return token;
+  const payload = {
+    uid: userId,
+    iat: Date.now(),
+    exp: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 days persistent session
+    jti: crypto.randomBytes(8).toString('hex'),
+  };
+  const payloadB64 = Buffer.from(JSON.stringify(payload), 'utf8').toString('base64url');
+  const sigB64 = crypto.createHmac('sha256', TOKEN_SECRET).update(payloadB64).digest('base64url');
+  return `wkv2.${payloadB64}.${sigB64}`;
+}
+
+function verifySessionToken(token: string): { userId: string } | null {
+  try {
+    if (!token || revokedTokens.has(token)) return null;
+    if (!token.startsWith('wkv2.')) return null;
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    const [, payloadB64, sigB64] = parts;
+    const expectedSig = crypto.createHmac('sha256', TOKEN_SECRET).update(payloadB64).digest('base64url');
+    const actualBuf = Buffer.from(sigB64, 'utf8');
+    const expectedBuf = Buffer.from(expectedSig, 'utf8');
+    if (actualBuf.length !== expectedBuf.length || !crypto.timingSafeEqual(actualBuf, expectedBuf)) {
+      return null;
+    }
+    const payload = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8'));
+    if (!payload?.uid || typeof payload.exp !== 'number' || payload.exp <= Date.now()) {
+      return null;
+    }
+    return { userId: String(payload.uid) };
+  } catch {
+    return null;
+  }
+}
+
+async function verifyFirebaseIdToken(
+  idToken: string
+): Promise<{ uid: string; email?: string; name?: string } | null> {
+  if (!idToken || idToken.startsWith('wkv2.')) return null;
+
+  try {
+    const decoded = await adminAuth.verifyIdToken(idToken);
+    if (decoded?.uid) {
+      return {
+        uid: decoded.uid,
+        email: decoded.email,
+        name: decoded.name || (decoded as any).displayName,
+      };
+    }
+  } catch (adminErr) {
+    // Fallback to Google Identity Toolkit REST lookup using project Web API key
+    try {
+      if (firebaseConfig?.apiKey) {
+        const lookupRes = await fetch(
+          `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${encodeURIComponent(firebaseConfig.apiKey)}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ idToken }),
+          }
+        );
+        if (lookupRes.ok) {
+          const lookupData = (await lookupRes.json()) as {
+            users?: Array<{ localId?: string; email?: string; displayName?: string }>;
+          };
+          const fbUser = lookupData?.users?.[0];
+          if (fbUser?.localId) {
+            return {
+              uid: fbUser.localId,
+              email: fbUser.email,
+              name: fbUser.displayName,
+            };
+          }
+        }
+      }
+    } catch (restErr) {
+      console.error('Firebase token verification error:', adminErr, restErr);
+    }
+  }
+
+  return null;
 }
 
 function sanitizeUser(user: any) {
@@ -483,7 +567,7 @@ const seedApplications = [
     internshipId: 'intern-01',
     company: 'Linear',
     roleTitle: 'Frontend Product Engineering Intern',
-    companyLogo: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&h=100&fit=crop&q=80',
+    companyLogo: '/logos/linear.svg',
     location: 'Remote — Bengaluru, India',
     stage: 'interviewing',
     appliedDate: '2026-10-24',
@@ -505,7 +589,7 @@ const seedApplications = [
     internshipId: 'intern-02',
     company: 'Figma',
     roleTitle: 'Product Design Systems Intern',
-    companyLogo: 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=100&h=100&fit=crop&q=80',
+    companyLogo: '/logos/figma.svg',
     location: 'Remote — Mumbai, India',
     stage: 'applied',
     appliedDate: '2026-10-28',
@@ -527,7 +611,7 @@ const seedApplications = [
     internshipId: 'intern-03',
     company: 'Watershed Climate',
     roleTitle: 'Climate Data & AI Systems Intern',
-    companyLogo: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=100&h=100&fit=crop&q=80',
+    companyLogo: '/logos/watershed.svg',
     location: 'Remote — Delhi NCR, India',
     stage: 'applied',
     appliedDate: '2026-10-29',
@@ -566,9 +650,9 @@ async function requireAuth(req: AuthenticatedRequest, res: Response, next: NextF
 
   const token = authHeader.split(' ')[1];
 
-  // 1. Session token
-  const session = activeTokens.get(token);
-  if (session && session.expiresAt > Date.now()) {
+  // 1. Persistent HMAC-signed session token
+  const session = verifySessionToken(token);
+  if (session) {
     try {
       const user = await dbQueries.getUserById(session.userId);
       if (user) {
@@ -582,20 +666,26 @@ async function requireAuth(req: AuthenticatedRequest, res: Response, next: NextF
   }
 
   // 2. Firebase ID Token (Google Sign-In)
-  try {
-    const decoded = await adminAuth.verifyIdToken(token);
-    if (decoded && decoded.uid) {
-      const user = await dbQueries.getOrCreateFirebaseUser(
-        decoded.uid,
-        decoded.email || `${decoded.uid}@workvanta.firebase`,
-        decoded.name || decoded.displayName
-      );
+  const decoded = await verifyFirebaseIdToken(token);
+  if (decoded?.uid) {
+    try {
+      let user = await dbQueries.getUserByUid(decoded.uid);
+      if (!user && decoded.email) {
+        user = await dbQueries.getUserByEmail(decoded.email);
+      }
+      if (!user) {
+        user = await dbQueries.getOrCreateFirebaseUser(
+          decoded.uid,
+          decoded.email || `${decoded.uid}@workvanta.firebase`,
+          decoded.name
+        );
+      }
       req.user = user;
       req.token = token;
       return next();
+    } catch (err) {
+      console.error('Error resolving Firebase user in requireAuth:', err);
     }
-  } catch (err) {
-    // Token not valid
   }
 
   res.status(401).json({ success: false, message: 'Session expired or invalid token. Please log in again.' });
@@ -614,9 +704,9 @@ async function requireAdmin(req: AuthenticatedRequest, res: Response, next: Next
 
   const token = authHeader.split(' ')[1];
 
-  // 1. Check active server token
-  const session = activeTokens.get(token);
-  if (session && session.expiresAt > Date.now()) {
+  // 1. Check persistent HMAC-signed session token
+  const session = verifySessionToken(token);
+  if (session) {
     try {
       const user = await dbQueries.getUserById(session.userId);
       if (user && (user.email?.toLowerCase() === 'admin@workvanta.in' || (user as any).role === 'admin')) {
@@ -630,19 +720,25 @@ async function requireAdmin(req: AuthenticatedRequest, res: Response, next: Next
   }
 
   // 2. Check Firebase ID Token for admin email
-  try {
-    const decoded = await adminAuth.verifyIdToken(token);
-    if (decoded && (decoded.email?.toLowerCase() === 'admin@workvanta.in' || (decoded as any).admin === true)) {
-      const user = await dbQueries.getOrCreateFirebaseUser(
-        decoded.uid,
-        decoded.email || 'admin@workvanta.in',
-        decoded.name || 'Admissions Lead'
-      );
+  const decoded = await verifyFirebaseIdToken(token);
+  if (decoded && decoded.email?.toLowerCase() === 'admin@workvanta.in') {
+    try {
+      let user = await dbQueries.getUserByUid(decoded.uid);
+      if (!user && decoded.email) {
+        user = await dbQueries.getUserByEmail(decoded.email);
+      }
+      if (!user) {
+        user = await dbQueries.getOrCreateFirebaseUser(
+          decoded.uid,
+          decoded.email || 'admin@workvanta.in',
+          decoded.name || 'Admissions Lead'
+        );
+      }
       req.user = user;
       req.token = token;
       return next();
-    }
-  } catch {}
+    } catch {}
+  }
 
   res.status(403).json({
     success: false,
@@ -654,8 +750,8 @@ async function optionalAuth(req: AuthenticatedRequest, res: Response, next: Next
   const authHeader = req.headers.authorization;
   if (authHeader && authHeader.startsWith('Bearer ')) {
     const token = authHeader.split(' ')[1];
-    const session = activeTokens.get(token);
-    if (session && session.expiresAt > Date.now()) {
+    const session = verifySessionToken(token);
+    if (session) {
       try {
         const user = await dbQueries.getUserById(session.userId);
         if (user) {
@@ -666,19 +762,20 @@ async function optionalAuth(req: AuthenticatedRequest, res: Response, next: Next
       } catch {}
     }
 
-    try {
-      const decoded = await adminAuth.verifyIdToken(token);
-      if (decoded && decoded.uid) {
-        const user = await dbQueries.getOrCreateFirebaseUser(
-          decoded.uid,
-          decoded.email || `${decoded.uid}@workvanta.firebase`,
-          decoded.name || decoded.displayName
-        );
-        req.user = user;
-        req.token = token;
-        return next();
-      }
-    } catch {}
+    const decoded = await verifyFirebaseIdToken(token);
+    if (decoded?.uid) {
+      try {
+        let user = await dbQueries.getUserByUid(decoded.uid);
+        if (!user && decoded.email) {
+          user = await dbQueries.getUserByEmail(decoded.email);
+        }
+        if (user) {
+          req.user = user;
+          req.token = token;
+          return next();
+        }
+      } catch {}
+    }
   }
   next();
 }
@@ -687,7 +784,7 @@ async function startServer() {
   const app = express();
   const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000;
 
-  app.use(express.json());
+  app.use(express.json({ limit: '25mb' }));
 
   // Initialize DB seed
   await initDbSeed();
@@ -696,7 +793,7 @@ async function startServer() {
   // SECURE AUTHENTICATION ENDPOINTS
   // ==========================================
 
-  // 1. Google Sign-In via Firebase Auth (Linked to PostgreSQL)
+  // 1. Google Sign-In via Firebase Auth (Linked & Persisted to PostgreSQL)
   app.post('/api/auth/google', async (req: Request, res: Response) => {
     try {
       const { idToken } = req.body;
@@ -705,7 +802,12 @@ async function startServer() {
         return;
       }
 
-      const decoded = await adminAuth.verifyIdToken(idToken);
+      const decoded = await verifyFirebaseIdToken(idToken);
+      if (!decoded?.uid) {
+        res.status(401).json({ success: false, message: 'Google token verification failed. Please sign in again.' });
+        return;
+      }
+
       const user = await dbQueries.getOrCreateFirebaseUser(
         decoded.uid,
         decoded.email || `${decoded.uid}@workvanta.in`,
@@ -782,6 +884,9 @@ async function startServer() {
         githubUrl: 'https://github.com',
         linkedinUrl: 'https://linkedin.com',
         uploadedResumeName: 'Student_Resume_2026.pdf',
+        authProvider: 'email',
+        loginCount: 1,
+        lastLoginAt: new Date(),
       });
 
       const token = generateSecureToken(newUser.id);
@@ -822,6 +927,7 @@ async function startServer() {
         return;
       }
 
+      await dbQueries.recordUserLogin(user.id, 'email');
       const token = generateSecureToken(user.id);
 
       res.json({
@@ -847,7 +953,7 @@ async function startServer() {
   // 5. Secure Logout - Invalidate session token
   app.post('/api/auth/logout', requireAuth, (req: AuthenticatedRequest, res: Response) => {
     if (req.token) {
-      activeTokens.delete(req.token);
+      revokedTokens.add(req.token);
     }
     res.json({ success: true, message: 'Signed out securely' });
   });
@@ -894,6 +1000,7 @@ async function startServer() {
         return;
       }
 
+      await dbQueries.recordUserLogin(user.id, 'admin');
       const token = generateSecureToken(user.id);
       const sanitized = sanitizeUser(user);
       sanitized.role = 'admin';
@@ -1041,7 +1148,7 @@ async function startServer() {
         internshipId: internshipId || 'custom',
         company: company || 'Company',
         roleTitle: roleTitle || 'Remote Internship Role',
-        companyLogo: companyLogo || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&h=100&fit=crop&q=80',
+        companyLogo: companyLogo || '/logos/workvanta-default.svg',
         location: location || 'Remote — India',
         stage: 'applied',
         appliedDate: new Date().toISOString().split('T')[0],
@@ -1333,7 +1440,7 @@ async function startServer() {
         id: newId,
         title: title.trim(),
         company: company.trim(),
-        companyLogo: companyLogo?.trim() || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&h=100&fit=crop&q=80',
+        companyLogo: companyLogo?.trim() || '/logos/workvanta-default.svg',
         location: location?.trim() || 'Remote — India',
         workType: workType || 'Remote',
         category: category || 'Software Engineering',
@@ -1500,6 +1607,68 @@ async function startServer() {
     } catch (error: any) {
       console.error('Failed to create review:', error);
       res.status(500).json({ success: false, message: 'Failed to submit review' });
+    }
+  });
+
+  // ==========================================
+  // GEMINI AI CHATBOT & AUDIO TRANSCRIPTION
+  // ==========================================
+
+  app.post('/api/ai/chat', optionalAuth, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { messages, persona, model, contextRole } = req.body || {};
+      if (!Array.isArray(messages) || messages.length === 0) {
+        res.status(400).json({ success: false, message: 'Conversation messages array is required.' });
+        return;
+      }
+
+      const result = await runMultiTurnChat({
+        messages,
+        persona,
+        model,
+        contextRole,
+      });
+
+      res.json({
+        success: true,
+        reply: result.reply,
+        modelUsed: result.modelUsed,
+      });
+    } catch (error: any) {
+      console.error('Gemini chat endpoint error:', error);
+      const status = typeof error?.status === 'number' ? error.status : 500;
+      res.status(status >= 400 && status < 600 ? status : 500).json({
+        success: false,
+        message: error?.message || 'Failed to generate AI Coach response.',
+      });
+    }
+  });
+
+  app.post('/api/ai/transcribe', optionalAuth, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { audioBase64, mimeType, promptHint } = req.body || {};
+      if (!audioBase64 || typeof audioBase64 !== 'string') {
+        res.status(400).json({ success: false, message: 'audioBase64 payload is required.' });
+        return;
+      }
+
+      const transcript = await transcribeAudioBuffer({
+        audioBase64,
+        mimeType: typeof mimeType === 'string' ? mimeType : 'audio/webm',
+        promptHint: typeof promptHint === 'string' ? promptHint : undefined,
+      });
+
+      res.json({
+        success: true,
+        transcript,
+      });
+    } catch (error: any) {
+      console.error('Gemini audio transcription error:', error);
+      const status = typeof error?.status === 'number' ? error.status : 500;
+      res.status(status >= 400 && status < 600 ? status : 500).json({
+        success: false,
+        message: error?.message || 'Failed to transcribe audio.',
+      });
     }
   });
 

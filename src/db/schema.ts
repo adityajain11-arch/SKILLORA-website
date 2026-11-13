@@ -21,6 +21,9 @@ export const users = pgTable('users', {
   githubUrl: text('github_url'),
   linkedinUrl: text('linkedin_url'),
   uploadedResumeName: text('uploaded_resume_name'),
+  authProvider: text('auth_provider').default('email'),
+  loginCount: integer('login_count').default(1),
+  lastLoginAt: timestamp('last_login_at').defaultNow(),
   createdAt: timestamp('created_at').defaultNow(),
 });
 

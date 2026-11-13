@@ -1,6 +1,7 @@
 import React from 'react';
 import { X, MapPin, CheckCircle2, Calendar, Sparkles, ArrowRight, Bookmark, Laptop, ShieldCheck } from 'lucide-react';
 import { Internship } from '../types';
+import { CompanyLogo } from './CompanyLogo';
 
 interface InternshipDetailModalProps {
   internship: Internship | null;
@@ -29,11 +30,10 @@ export const InternshipDetailModal: React.FC<InternshipDetailModalProps> = ({
         <div className="p-6 bg-white dark:bg-[#1E1A2C] border-b border-[#7C6CF0]/15 dark:border-[#3D3759] flex items-start justify-between gap-4 shrink-0">
           <div className="flex items-start gap-4">
             <div className="w-14 h-14 rounded-2xl bg-[#FFF8F0] dark:bg-[#26223A] border border-[#7C6CF0]/15 dark:border-[#3D3759] p-2 overflow-hidden shadow-xs shrink-0 flex items-center justify-center">
-              <img
+              <CompanyLogo
                 src={internship.companyLogo}
-                alt={internship.company}
+                company={internship.company}
                 className="w-full h-full object-cover rounded-xl"
-                referrerPolicy="no-referrer"
               />
             </div>
 

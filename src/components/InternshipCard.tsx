@@ -1,6 +1,7 @@
 import React from 'react';
 import { Bookmark, MapPin, Sparkles, CheckCircle2, ArrowUpRight, Laptop } from 'lucide-react';
 import { Internship } from '../types';
+import { CompanyLogo } from './CompanyLogo';
 
 interface InternshipCardProps {
   internship: Internship;
@@ -25,11 +26,10 @@ export const InternshipCard: React.FC<InternshipCardProps> = ({
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-3.5">
             <div className="w-13 h-13 rounded-2xl bg-[#FFF8F0] dark:bg-[#1B1826] border border-[#7C6CF0]/15 dark:border-[#3D3759] overflow-hidden p-1.5 shrink-0 flex items-center justify-center shadow-xs">
-              <img
+              <CompanyLogo
                 src={internship.companyLogo}
-                alt={`${internship.company} logo`}
+                company={internship.company}
                 className="w-full h-full object-cover rounded-xl"
-                referrerPolicy="no-referrer"
               />
             </div>
 
