@@ -98,9 +98,30 @@ export const reviews = pgTable('reviews', {
   createdAt: timestamp('created_at').defaultNow(),
 });
 
+export const registrations = pgTable('registrations', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => users.id),
+  fullName: text('full_name').notNull(),
+  email: text('email').notNull(),
+  mobile: text('mobile').notNull(),
+  college: text('college').notNull(),
+  course: text('course').notNull(),
+  domainTrack: text('domain_track').notNull(),
+  state: text('state').notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
 export const usersRelations = relations(users, ({ many }) => ({
   applications: many(applications),
   bookmarks: many(bookmarks),
+  registrations: many(registrations),
+}));
+
+export const registrationsRelations = relations(registrations, ({ one }) => ({
+  user: one(users, {
+    fields: [registrations.userId],
+    references: [users.id],
+  }),
 }));
 
 export const applicationsRelations = relations(applications, ({ one }) => ({

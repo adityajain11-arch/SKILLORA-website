@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Application, OfferLetter, AuthUser, Internship } from '../types';
+import { Application, OfferLetter, AuthUser, Internship, AdminRegistrationRecord } from '../types';
 import { OfferLetterModal } from './OfferLetterModal';
 import { CompanyLogo } from './CompanyLogo';
 import { 
@@ -32,7 +32,11 @@ import {
   Check,
   UserCheck,
   Layers,
-  ArrowRight
+  ArrowRight,
+  Phone,
+  BookOpen,
+  Compass,
+  ClipboardList
 } from 'lucide-react';
 import { fireCelebrationConfetti } from '../utils/confetti';
 
@@ -44,13 +48,13 @@ interface AdminDashboardProps {
   onInternshipsUpdated?: () => void;
 }
 
-type AdminTab = 'applicants' | 'internships' | 'users';
+type AdminTab = 'applicants' | 'internships' | 'registrations' | 'users';
 const ADMIN_SUBTAB_KEY = 'workvanta_admin_subtab';
 
 function getInitialAdminTab(): AdminTab {
   if (typeof window === 'undefined') return 'applicants';
   const saved = localStorage.getItem(ADMIN_SUBTAB_KEY) as AdminTab | null;
-  if (saved === 'applicants' || saved === 'internships' || saved === 'users') {
+  if (saved === 'applicants' || saved === 'internships' || saved === 'registrations' || saved === 'users') {
     return saved;
   }
   return 'applicants';
@@ -86,6 +90,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [userUniversityFilter, setUserUniversityFilter] = useState('All');
   const [userGradYearFilter, setUserGradYearFilter] = useState('All');
   const [userRoleFilter, setUserRoleFilter] = useState<'All' | 'student' | 'admin'>('All');
+
+  // Admin-only Registration Form submissions state
+  const [registrationsList, setRegistrationsList] = useState<AdminRegistrationRecord[]>([]);
+  const [loadingRegistrations, setLoadingRegistrations] = useState(false);
+  const [registrationsError, setRegistrationsError] = useState<string | null>(null);
+  const [regSearchQuery, setRegSearchQuery] = useState('');
+  const [regTrackFilter, setRegTrackFilter] = useState('All');
+  const [regStateFilter, setRegStateFilter] = useState('All');
 
   // Internships state
   const [internshipsList, setInternshipsList] = useState<Internship[]>([]);
@@ -198,6 +210,35 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   };
 
+  // Fetch Admin-Only Registration Submissions
+  const fetchRegistrations = async () => {
+    if (!currentUser || currentUser.role !== 'admin') return;
+    setLoadingRegistrations(true);
+    setRegistrationsError(null);
+    try {
+      const res = await fetch('/api/admin/registrations', {
+        headers: getAuthHeaders()
+      });
+      if (res.status === 401 || res.status === 403) {
+        setAccessDenied(true);
+        return;
+      }
+      if (!res.ok) {
+        setRegistrationsError('Could not load registration submissions from PostgreSQL.');
+        return;
+      }
+      const data = await res.json();
+      if (data.success && Array.isArray(data.data)) {
+        setRegistrationsList(data.data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch registrations', err);
+      setRegistrationsError('Network error while loading registration submissions.');
+    } finally {
+      setLoadingRegistrations(false);
+    }
+  };
+
   // Fetch Internships
   const fetchInternships = async () => {
     setLoadingInternships(true);
@@ -220,6 +261,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     if (authChecking) return;
     fetchApplicants();
     fetchUsers();
+    fetchRegistrations();
     fetchInternships();
   }, [currentUser, authChecking]);
 
@@ -227,6 +269,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     if (typeof window === 'undefined' || !currentUser || currentUser.role !== 'admin') return;
     const handleFocus = () => {
       fetchUsers();
+      fetchRegistrations();
       fetchApplicants();
     };
     window.addEventListener('focus', handleFocus);
@@ -555,6 +598,48 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     );
   });
 
+  // Derived filter options & filtering for Admin-Only Registration Submissions
+  const uniqueRegTracks = Array.from(
+    new Set(
+      registrationsList
+        .map((r) => (r.domainTrack || '').trim())
+        .filter((val) => val.length > 0)
+    )
+  ).sort((a, b) => a.localeCompare(b));
+
+  const uniqueRegStates = Array.from(
+    new Set(
+      registrationsList
+        .map((r) => (r.state || '').trim())
+        .filter((val) => val.length > 0)
+    )
+  ).sort((a, b) => a.localeCompare(b));
+
+  const hasActiveRegFilters =
+    regSearchQuery.trim() !== '' || regTrackFilter !== 'All' || regStateFilter !== 'All';
+
+  const resetRegFilters = () => {
+    setRegSearchQuery('');
+    setRegTrackFilter('All');
+    setRegStateFilter('All');
+  };
+
+  const filteredRegistrations = registrationsList.filter((r) => {
+    if (regTrackFilter !== 'All' && r.domainTrack !== regTrackFilter) return false;
+    if (regStateFilter !== 'All' && r.state !== regStateFilter) return false;
+    if (!regSearchQuery.trim()) return true;
+    const q = regSearchQuery.toLowerCase();
+    return (
+      (r.fullName || '').toLowerCase().includes(q) ||
+      (r.email || '').toLowerCase().includes(q) ||
+      (r.mobile || '').toLowerCase().includes(q) ||
+      (r.college || '').toLowerCase().includes(q) ||
+      (r.course || '').toLowerCase().includes(q) ||
+      (r.domainTrack || '').toLowerCase().includes(q) ||
+      (r.state || '').toLowerCase().includes(q)
+    );
+  });
+
   // Filter internships list
   const filteredInternships = internshipsList.filter((item) => {
     if (!internshipSearchQuery.trim()) return true;
@@ -661,6 +746,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             onClick={() => {
               fetchApplicants();
               fetchUsers();
+              fetchRegistrations();
               fetchInternships();
             }}
             className="p-2.5 rounded-2xl bg-[#FFF8F0] dark:bg-[#1E1A2C] border border-[#7C6CF0]/15 dark:border-[#3D3759] text-[#7C6CF0] dark:text-[#A99CFF] hover:bg-[#7C6CF0]/10 transition-colors cursor-pointer"
@@ -719,6 +805,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </span>
           <span className="px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
             {internshipsList.length}
+          </span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('registrations')}
+          className={`px-4 sm:px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-between sm:justify-center gap-2 cursor-pointer ${
+            activeTab === 'registrations'
+              ? 'bg-white dark:bg-[#26223A] text-[#7C6CF0] dark:text-[#A99CFF] shadow-xs'
+              : 'text-[#6B6880] dark:text-[#A5A0BA] hover:text-[#2D2A3E]'
+          }`}
+        >
+          <span className="flex items-center gap-2">
+            <ClipboardList className="w-4 h-4 shrink-0" />
+            <span>Registration Details</span>
+          </span>
+          <span className="px-2 py-0.5 rounded-full text-[10px] bg-violet-500/15 text-violet-600 dark:text-violet-300">
+            {registrationsList.length}
           </span>
         </button>
 
@@ -1101,7 +1204,232 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       )}
 
       {/* ======================================================== */}
-      {/* TAB 3: USER SIGNUPS & LOGINS AUDIT */}
+      {/* TAB 3: ADMIN-ONLY REGISTRATION FORM SUBMISSIONS */}
+      {/* ======================================================== */}
+      {activeTab === 'registrations' && (
+        <div className="space-y-6">
+          <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-[#26223A] border border-[#7C6CF0]/15 dark:border-[#3D3759] space-y-4">
+            <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3">
+              {/* Search registrations */}
+              <div className="relative flex-1 min-w-0 sm:min-w-[240px]">
+                <Search className="w-4 h-4 text-[#6B6880] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type="text"
+                  value={regSearchQuery}
+                  onChange={(e) => setRegSearchQuery(e.target.value)}
+                  placeholder="Search by name, mobile, email, college, course, or state..."
+                  aria-label="Search registration submissions"
+                  className="w-full pl-10 pr-9 py-2.5 text-xs rounded-xl bg-[#FFF8F0]/80 dark:bg-[#1E1A2C] border border-[#7C6CF0]/15 text-[#2D2A3E] dark:text-[#F2EEFF] focus:outline-none focus:ring-2 focus:ring-[#7C6CF0]"
+                />
+                {regSearchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setRegSearchQuery('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded-full text-[#6B6880] hover:text-[#2D2A3E] dark:hover:text-[#F2EEFF] cursor-pointer"
+                    title="Clear search"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Filter by Preferred Domain Track */}
+              <div className="relative sm:w-56">
+                <Compass className="w-3.5 h-3.5 text-[#7C6CF0] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <select
+                  value={regTrackFilter}
+                  onChange={(e) => setRegTrackFilter(e.target.value)}
+                  aria-label="Filter by domain track"
+                  className="w-full pl-9 pr-3 py-2.5 text-xs font-semibold rounded-xl bg-[#FFF8F0]/80 dark:bg-[#1E1A2C] border border-[#7C6CF0]/15 text-[#2D2A3E] dark:text-[#F2EEFF] focus:outline-none focus:ring-2 focus:ring-[#7C6CF0] cursor-pointer"
+                >
+                  <option value="All">All Domain Tracks</option>
+                  {uniqueRegTracks.map((track) => (
+                    <option key={track} value={track}>
+                      {track}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Filter by State */}
+              <div className="relative sm:w-48">
+                <MapPin className="w-3.5 h-3.5 text-[#7C6CF0] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <select
+                  value={regStateFilter}
+                  onChange={(e) => setRegStateFilter(e.target.value)}
+                  aria-label="Filter by state"
+                  className="w-full pl-9 pr-3 py-2.5 text-xs font-semibold rounded-xl bg-[#FFF8F0]/80 dark:bg-[#1E1A2C] border border-[#7C6CF0]/15 text-[#2D2A3E] dark:text-[#F2EEFF] focus:outline-none focus:ring-2 focus:ring-[#7C6CF0] cursor-pointer"
+                >
+                  <option value="All">All States</option>
+                  {uniqueRegStates.map((st) => (
+                    <option key={st} value={st}>
+                      {st}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="pt-3 border-t border-[#7C6CF0]/10 dark:border-[#3D3759] flex flex-wrap items-center justify-between gap-3 text-xs text-[#6B6880] dark:text-[#A5A0BA]">
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 text-[11px] font-bold border border-emerald-500/20">
+                  <Lock className="w-3 h-3" />
+                  <span>Admin-Only Protected Records</span>
+                </span>
+                <span>
+                  Showing <strong className="text-[#2D2A3E] dark:text-[#F2EEFF]">{filteredRegistrations.length}</strong> of{' '}
+                  <strong className="text-[#2D2A3E] dark:text-[#F2EEFF]">{registrationsList.length}</strong> submissions
+                </span>
+              </div>
+
+              {hasActiveRegFilters && (
+                <button
+                  type="button"
+                  onClick={resetRegFilters}
+                  className="px-3 py-1 rounded-lg text-[11px] font-bold text-[#7C6CF0] dark:text-[#A99CFF] bg-[#7C6CF0]/10 hover:bg-[#7C6CF0]/20 transition-colors flex items-center gap-1 cursor-pointer"
+                >
+                  <X className="w-3 h-3" />
+                  <span>Reset Filters</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Registrations Table / Cards */}
+          <div className="rounded-3xl bg-white dark:bg-[#26223A] border border-[#7C6CF0]/15 dark:border-[#3D3759] overflow-hidden cozy-card-shadow">
+            <div className="p-4 sm:p-5 border-b border-[#7C6CF0]/10 dark:border-[#3D3759] flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <ClipboardList className="w-4 h-4 text-[#7C6CF0] shrink-0" />
+                <h3 className="text-sm font-bold text-[#2D2A3E] dark:text-[#F2EEFF]">
+                  Student Registration Form Submissions ({filteredRegistrations.length})
+                </h3>
+              </div>
+              <span className="text-[11px] text-[#6B6880] dark:text-[#A5A0BA]">
+                Hidden from student accounts · PostgreSQL Vault
+              </span>
+            </div>
+
+            {registrationsError && (
+              <div className="mx-5 mt-4 p-3 rounded-xl bg-amber-500/10 border border-amber-500/25 text-xs text-amber-700 dark:text-amber-300 flex items-center justify-between">
+                <span>{registrationsError}</span>
+                <button
+                  type="button"
+                  onClick={fetchRegistrations}
+                  className="font-bold underline cursor-pointer"
+                >
+                  Retry
+                </button>
+              </div>
+            )}
+
+            {loadingRegistrations && registrationsList.length === 0 ? (
+              <div className="p-12 text-center text-xs text-[#6B6880]">
+                Loading confidential registration submissions...
+              </div>
+            ) : filteredRegistrations.length === 0 ? (
+              <div className="p-10 sm:p-12 text-center text-[#6B6880] dark:text-[#A5A0BA] space-y-3">
+                <ClipboardList className="w-8 h-8 mx-auto text-[#7C6CF0]/40" />
+                <div className="space-y-1">
+                  <p className="text-sm font-semibold text-[#2D2A3E] dark:text-[#F2EEFF]">
+                    {registrationsList.length === 0
+                      ? 'No registration form submissions recorded yet'
+                      : 'No registration records match your filters'}
+                  </p>
+                  <p className="text-xs">
+                    {registrationsList.length === 0
+                      ? 'New submissions from the Registration Form will appear here automatically for administrators.'
+                      : 'Try clearing the search query, domain track, or state filter.'}
+                  </p>
+                </div>
+                {hasActiveRegFilters && (
+                  <button
+                    type="button"
+                    onClick={resetRegFilters}
+                    className="px-4 py-2 rounded-full text-xs font-bold bg-[#7C6CF0]/10 hover:bg-[#7C6CF0]/20 text-[#7C6CF0] dark:text-[#A99CFF] transition-colors cursor-pointer"
+                  >
+                    Clear Search & Filters
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="divide-y divide-[#7C6CF0]/10 dark:divide-[#3D3759]">
+                {filteredRegistrations.map((reg) => (
+                  <div
+                    key={reg.id}
+                    className="p-4 sm:p-5 hover:bg-[#FFF8F0]/40 dark:hover:bg-[#1E1A2C]/40 transition-colors flex flex-col lg:flex-row lg:items-center justify-between gap-4 text-xs"
+                  >
+                    <div className="flex items-start gap-3.5 min-w-0 flex-1">
+                      <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#7C6CF0] to-[#FF8A65] flex items-center justify-center text-white font-bold text-sm shrink-0">
+                        {reg.fullName?.charAt(0)?.toUpperCase() || 'S'}
+                      </div>
+
+                      <div className="space-y-1.5 min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-bold text-sm text-[#2D2A3E] dark:text-[#F2EEFF]">
+                            {reg.fullName}
+                          </span>
+                          <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#7C6CF0]/12 text-[#7C6CF0] dark:text-[#A99CFF] border border-[#7C6CF0]/20">
+                            {reg.domainTrack}
+                          </span>
+                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
+                            {reg.course}
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-x-4 gap-y-1.5 text-[11px] text-[#6B6880] dark:text-[#A5A0BA]">
+                          <span className="inline-flex items-center gap-1.5 min-w-0">
+                            <Mail className="w-3.5 h-3.5 text-[#7C6CF0] shrink-0" />
+                            <span className="break-all text-[#2D2A3E] dark:text-[#F2EEFF] font-medium">{reg.email}</span>
+                          </span>
+                          <span className="inline-flex items-center gap-1.5 min-w-0">
+                            <Phone className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                            <span className="font-mono font-semibold text-[#2D2A3E] dark:text-[#F2EEFF]">{reg.mobile}</span>
+                          </span>
+                          <span className="inline-flex items-center gap-1.5 min-w-0">
+                            <MapPin className="w-3.5 h-3.5 text-[#FF8A65] shrink-0" />
+                            <span>{reg.state}</span>
+                          </span>
+                          <span className="inline-flex items-center gap-1.5 min-w-0 sm:col-span-2">
+                            <GraduationCap className="w-3.5 h-3.5 text-[#7C6CF0] shrink-0" />
+                            <span className="text-[#2D2A3E] dark:text-[#F2EEFF] font-medium">{reg.college}</span>
+                          </span>
+                          <span className="inline-flex items-center gap-1.5 min-w-0">
+                            <BookOpen className="w-3.5 h-3.5 text-cyan-500 shrink-0" />
+                            <span>{reg.course}</span>
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap lg:flex-col items-start lg:items-end justify-between gap-2 shrink-0 pt-2 lg:pt-0 border-t lg:border-t-0 border-[#7C6CF0]/10 dark:border-[#3D3759]">
+                      <span className="text-[10px] font-mono px-2.5 py-1 rounded-lg bg-[#FFF8F0] dark:bg-[#1E1A2C] border border-[#7C6CF0]/15 text-[#6B6880] dark:text-[#A5A0BA]">
+                        ID: {reg.id.slice(0, 14)}
+                      </span>
+                      {reg.createdAt && (
+                        <span className="text-[11px] text-[#6B6880] dark:text-[#A5A0BA]">
+                          Submitted:{' '}
+                          <strong className="text-[#2D2A3E] dark:text-[#F2EEFF]">
+                            {new Date(reg.createdAt).toLocaleString('en-IN', {
+                              day: 'numeric',
+                              month: 'short',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </strong>
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* TAB 4: USER SIGNUPS & LOGINS AUDIT */}
       {/* ======================================================== */}
       {activeTab === 'users' && (
         <div className="space-y-6">

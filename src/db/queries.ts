@@ -1,6 +1,6 @@
 import { db } from './index.ts';
-import { users, internships, applications, bookmarks, reviews } from './schema.ts';
-import { eq, and, sql } from 'drizzle-orm';
+import { users, internships, applications, bookmarks, reviews, registrations } from './schema.ts';
+import { eq, and, sql, desc } from 'drizzle-orm';
 import crypto from 'crypto';
 
 // ==========================================
@@ -211,6 +211,49 @@ export async function getAllUsersForAdmin() {
   } catch (error) {
     console.error('Error in getAllUsersForAdmin:', error);
     throw new Error('Database query failed for getAllUsersForAdmin', { cause: error });
+  }
+}
+
+// ==========================================
+// REGISTRATIONS REPOSITORY (ADMIN-ONLY READ)
+// ==========================================
+
+export async function createRegistrationRecord(data: typeof registrations.$inferInsert) {
+  try {
+    const rows = await db.insert(registrations).values(data).returning();
+    return rows[0];
+  } catch (error) {
+    console.error('Error in createRegistrationRecord:', error);
+    throw new Error('Database query failed for createRegistrationRecord', { cause: error });
+  }
+}
+
+export async function getAllRegistrationsForAdmin() {
+  try {
+    const rows = await db
+      .select({
+        id: registrations.id,
+        userId: registrations.userId,
+        fullName: registrations.fullName,
+        email: registrations.email,
+        mobile: registrations.mobile,
+        college: registrations.college,
+        course: registrations.course,
+        domainTrack: registrations.domainTrack,
+        state: registrations.state,
+        createdAt: registrations.createdAt,
+        authProvider: users.authProvider,
+        loginCount: users.loginCount,
+        lastLoginAt: users.lastLoginAt,
+      })
+      .from(registrations)
+      .leftJoin(users, eq(registrations.userId, users.id))
+      .orderBy(desc(registrations.createdAt));
+
+    return rows;
+  } catch (error) {
+    console.error('Error in getAllRegistrationsForAdmin:', error);
+    throw new Error('Database query failed for getAllRegistrationsForAdmin', { cause: error });
   }
 }
 

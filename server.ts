@@ -835,10 +835,20 @@ async function startServer() {
     }
   });
 
-  // 2. Secure Register (Stored in PostgreSQL)
+  // 2. Secure Register (Stored in PostgreSQL; detailed registration fields restricted to Admin Console)
   app.post('/api/auth/register', async (req: Request, res: Response) => {
     try {
-      const { name, email, password, university, major, gradYear } = req.body;
+      const {
+        name,
+        email,
+        mobile,
+        college,
+        course,
+        domainTrack,
+        state,
+        password,
+        gradYear,
+      } = req.body;
 
       if (!name || typeof name !== 'string' || name.trim().length === 0) {
         res.status(400).json({ success: false, message: 'Full name is required' });
@@ -857,6 +867,40 @@ async function startServer() {
         return;
       }
 
+      const cleanMobile = typeof mobile === 'string' ? mobile.trim() : '';
+      const mobileDigits = cleanMobile.replace(/\D/g, '');
+      if (!cleanMobile || mobileDigits.length < 10 || mobileDigits.length > 15) {
+        res.status(400).json({
+          success: false,
+          message: 'Please enter a valid 10-digit mobile number',
+        });
+        return;
+      }
+
+      const cleanCollege = typeof college === 'string' ? college.trim() : '';
+      if (!cleanCollege) {
+        res.status(400).json({ success: false, message: 'College name is required' });
+        return;
+      }
+
+      const cleanCourse = typeof course === 'string' ? course.trim() : '';
+      if (!cleanCourse) {
+        res.status(400).json({ success: false, message: 'Course is required' });
+        return;
+      }
+
+      const cleanDomainTrack = typeof domainTrack === 'string' ? domainTrack.trim() : '';
+      if (!cleanDomainTrack) {
+        res.status(400).json({ success: false, message: 'Preferred domain track is required' });
+        return;
+      }
+
+      const cleanState = typeof state === 'string' ? state.trim() : '';
+      if (!cleanState) {
+        res.status(400).json({ success: false, message: 'State is required' });
+        return;
+      }
+
       if (!password || typeof password !== 'string' || password.length < 6) {
         res.status(400).json({ success: false, message: 'Password must be at least 6 characters long' });
         return;
@@ -871,6 +915,7 @@ async function startServer() {
       const salt = generateSalt();
       const passwordHash = hashPassword(password, salt);
       const userId = `usr-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;
+      const registrationId = `reg-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;
 
       const newUser = await dbQueries.createUserRecord({
         id: userId,
@@ -878,9 +923,9 @@ async function startServer() {
         email: normalizedEmail,
         passwordHash,
         salt,
-        university: university?.trim() || 'University in India',
-        major: major?.trim() || 'Computer Science',
-        gradYear: gradYear?.trim() || '2027',
+        university: 'University in India',
+        major: 'Computer Science',
+        gradYear: typeof gradYear === 'string' && gradYear.trim() ? gradYear.trim() : '2027',
         gpa: '3.80',
         bio: 'Early-career builder eager to learn and ship high-impact software.',
         skills: ['TypeScript', 'React', 'Git'],
@@ -894,6 +939,18 @@ async function startServer() {
         authProvider: 'email',
         loginCount: 1,
         lastLoginAt: new Date(),
+      });
+
+      await dbQueries.createRegistrationRecord({
+        id: registrationId,
+        userId: newUser.id,
+        fullName: name.trim(),
+        email: normalizedEmail,
+        mobile: cleanMobile,
+        college: cleanCollege,
+        course: cleanCourse,
+        domainTrack: cleanDomainTrack,
+        state: cleanState,
       });
 
       const token = generateSecureToken(newUser.id);
@@ -1481,6 +1538,21 @@ async function startServer() {
     } catch (error: any) {
       console.error('Failed to get users:', error);
       res.status(500).json({ success: false, message: 'Failed to load user directory' });
+    }
+  });
+
+  // 15b. Admin: Get full Registration Form submissions (visible ONLY to Admin) - Clearance Protected
+  app.get('/api/admin/registrations', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const registrationList = await dbQueries.getAllRegistrationsForAdmin();
+      res.json({
+        success: true,
+        count: registrationList.length,
+        data: registrationList
+      });
+    } catch (error: any) {
+      console.error('Failed to get registration records:', error);
+      res.status(500).json({ success: false, message: 'Failed to load registration submissions' });
     }
   });
 

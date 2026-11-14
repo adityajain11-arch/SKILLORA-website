@@ -232,6 +232,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({
         setErrorMsg('Please fill in all required registration fields.');
         return;
       }
+      const mobileDigits = mobile.replace(/\D/g, '');
+      if (mobileDigits.length < 10 || mobileDigits.length > 15) {
+        setErrorMsg('Please enter a valid 10-digit mobile number.');
+        return;
+      }
       if (password.length < 6) {
         setErrorMsg('Password must be at least 6 characters.');
         return;
@@ -254,8 +259,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({
         : {
             name: name.trim(),
             email: email.trim(),
-            university: `${college.trim()} (${stateName})`,
-            major: `${course} · ${domainTrack}`,
+            mobile: mobile.trim(),
+            college: college.trim(),
+            course,
+            domainTrack,
+            state: stateName,
             password,
           };
 

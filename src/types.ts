@@ -118,3 +118,19 @@ export interface AuthUser {
   token?: string;
 }
 
+export interface AdminRegistrationRecord {
+  id: string;
+  userId: string;
+  fullName: string;
+  email: string;
+  mobile: string;
+  college: string;
+  course: string;
+  domainTrack: string;
+  state: string;
+  createdAt?: string | null;
+  authProvider?: string | null;
+  loginCount?: number | null;
+  lastLoginAt?: string | null;
+}
+
