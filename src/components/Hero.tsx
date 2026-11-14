@@ -40,38 +40,38 @@ export const Hero: React.FC<HeroProps> = ({ onExploreClick, onTrackerClick, role
             </p>
 
             {/* Action buttons */}
-            <div className="flex flex-wrap items-center gap-4 pt-2">
+            <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3 sm:gap-4 pt-2">
               <button
                 onClick={onExploreClick}
-                className="px-6 py-3.5 rounded-full bg-[#7C6CF0] hover:bg-[#6a59e6] dark:bg-[#A99CFF] dark:hover:bg-[#9788f5] text-white dark:text-[#1B1826] font-semibold text-sm shadow-md hover:shadow-lg hover:scale-[1.01] transition-all flex items-center gap-2 group whitespace-nowrap"
+                className="w-full sm:w-auto px-5 sm:px-6 py-3.5 rounded-full bg-[#7C6CF0] hover:bg-[#6a59e6] dark:bg-[#A99CFF] dark:hover:bg-[#9788f5] text-white dark:text-[#1B1826] font-semibold text-sm shadow-md hover:shadow-lg hover:scale-[1.01] transition-all flex items-center justify-center gap-2 group text-center cursor-pointer"
               >
                 <span>Explore {roleCount} Internships in India</span>
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform shrink-0" />
               </button>
 
               <button
                 onClick={onTrackerClick}
-                className="px-6 py-3.5 rounded-full bg-white dark:bg-[#26223A] border border-[#7C6CF0]/25 dark:border-[#3D3759] text-[#2D2A3E] dark:text-[#F2EEFF] hover:border-[#7C6CF0] font-semibold text-sm shadow-xs transition-all whitespace-nowrap"
+                className="w-full sm:w-auto px-6 py-3.5 rounded-full bg-white dark:bg-[#26223A] border border-[#7C6CF0]/25 dark:border-[#3D3759] text-[#2D2A3E] dark:text-[#F2EEFF] hover:border-[#7C6CF0] font-semibold text-sm shadow-xs transition-all text-center cursor-pointer"
               >
                 View My Tracker
               </button>
             </div>
 
             {/* 3 Pillars Micro Trust Badges */}
-            <div className="pt-4 flex flex-wrap items-center gap-y-2 gap-x-6 text-xs text-[#6B6880] dark:text-[#A5A0BA]">
+            <div className="pt-4 flex flex-wrap items-center gap-y-2 gap-x-4 sm:gap-x-6 text-xs text-[#6B6880] dark:text-[#A5A0BA]">
               <div className="flex items-center gap-2">
-                <Laptop className="w-4 h-4 text-[#34D399]" />
+                <Laptop className="w-4 h-4 text-[#34D399] shrink-0" />
                 <span className="font-medium text-[#2D2A3E] dark:text-[#F2EEFF]">100% Remote Anywhere in India</span>
               </div>
               <span className="text-[#c9c4d6] dark:text-[#474554] hidden sm:inline">·</span>
               <div className="flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-[#7C6CF0] dark:text-[#A99CFF]" />
+                <ShieldCheck className="w-4 h-4 text-[#7C6CF0] dark:text-[#A99CFF] shrink-0" />
                 <span className="font-medium text-[#2D2A3E] dark:text-[#F2EEFF]">Direct Engineering Pods</span>
               </div>
               <span className="text-[#c9c4d6] dark:text-[#474554] hidden sm:inline">·</span>
               <div className="flex items-center gap-2">
-                <Wifi className="w-4 h-4 text-[#FF8A65]" />
-                <span className="font-medium text-[#2D2A3E] dark:text-[#F2EEFF]">Hardware & Tech Setup Provided</span>
+                <Wifi className="w-4 h-4 text-[#FF8A65] shrink-0" />
+                <span className="font-medium text-[#2D2A3E] dark:text-[#F2EEFF]">Hardware &amp; Tech Setup Provided</span>
               </div>
             </div>
 
@@ -91,19 +91,19 @@ export const Hero: React.FC<HeroProps> = ({ onExploreClick, onTrackerClick, role
                       setHeroImgSrc(studioFallbackImg);
                     }
                   }}
-                  className="w-full h-72 sm:h-84 object-cover object-center transform group-hover:scale-102 transition duration-700"
+                  className="w-full h-64 sm:h-84 object-cover object-center transform group-hover:scale-102 transition duration-700"
                 />
 
-                <div className="absolute bottom-4 left-4 right-4 p-4 rounded-2xl bg-white/95 dark:bg-[#26223A]/95 backdrop-blur-md border border-white/40 dark:border-[#3D3759] shadow-lg flex items-center justify-between">
+                <div className="absolute bottom-3 sm:bottom-4 left-3 sm:left-4 right-3 sm:right-4 p-3 sm:p-4 rounded-2xl bg-white/95 dark:bg-[#26223A]/95 backdrop-blur-md border border-white/40 dark:border-[#3D3759] shadow-lg flex flex-wrap items-center justify-between gap-2">
                   <div>
-                    <div className="text-xs font-semibold text-[#7C6CF0] dark:text-[#A99CFF] uppercase tracking-wider">
+                    <div className="text-[11px] sm:text-xs font-semibold text-[#7C6CF0] dark:text-[#A99CFF] uppercase tracking-wider">
                       Workvanta Remote Cohort
                     </div>
-                    <div className="text-sm font-bold text-[#2D2A3E] dark:text-[#F2EEFF]">
+                    <div className="text-xs sm:text-sm font-bold text-[#2D2A3E] dark:text-[#F2EEFF]">
                       Pan-India Applications Open
                     </div>
                   </div>
-                  <div className="px-3 py-1 rounded-full bg-[#34D399]/15 text-[#006949] dark:text-[#5EE3B0] text-xs font-bold">
+                  <div className="px-2.5 sm:px-3 py-1 rounded-full bg-[#34D399]/15 text-[#006949] dark:text-[#5EE3B0] text-[11px] sm:text-xs font-bold shrink-0">
                     100% Remote
                   </div>
                 </div>

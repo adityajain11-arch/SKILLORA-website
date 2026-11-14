@@ -447,7 +447,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FFF8F0] dark:bg-[#1B1826] text-[#2D2A3E] dark:text-[#F2EEFF] transition-colors flex flex-col font-sans">
+    <div className="min-h-screen overflow-x-clip bg-[#FFF8F0] dark:bg-[#1B1826] text-[#2D2A3E] dark:text-[#F2EEFF] transition-colors flex flex-col font-sans">
       
       {/* Top Bar Navigation */}
       <Navbar
@@ -465,14 +465,14 @@ export default function App() {
 
       {/* Login notification toast */}
       {loginToast && (
-        <div className="fixed top-20 right-4 z-50 p-3.5 rounded-2xl bg-white dark:bg-[#26223A] border border-[#7C6CF0]/25 dark:border-[#3D3759] shadow-lg flex items-center gap-2.5 text-xs font-semibold animate-in slide-in-from-top-2">
-          <UserCheck className="w-4 h-4 text-[#34D399]" />
+        <div className="fixed top-20 left-4 right-4 sm:left-auto sm:right-4 sm:max-w-sm z-50 p-3.5 rounded-2xl bg-white dark:bg-[#26223A] border border-[#7C6CF0]/25 dark:border-[#3D3759] shadow-lg flex items-center gap-2.5 text-xs font-semibold animate-in slide-in-from-top-2">
+          <UserCheck className="w-4 h-4 text-[#34D399] shrink-0" />
           <span>{loginToast}</span>
         </div>
       )}
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full">
+      <main className="flex-1 max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 w-full min-w-0">
         {currentTab === 'login' && (
           <LoginPage
             mode={authMode}
@@ -503,9 +503,9 @@ export default function App() {
                 onReset={handleResetFilters}
               />
 
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
                 <div className="text-sm font-semibold text-[#2D2A3E] dark:text-[#F2EEFF] flex items-center gap-2">
-                  <Laptop className="w-4 h-4 text-[#34D399]" />
+                  <Laptop className="w-4 h-4 text-[#34D399] shrink-0" />
                   <span>Showing {filteredInternships.length} Internships Across India</span>
                 </div>
                 {bookmarks.length > 0 && (
@@ -522,7 +522,7 @@ export default function App() {
               </div>
 
               {filteredInternships.length === 0 ? (
-                <div className="p-12 text-center rounded-3xl bg-white dark:bg-[#26223A] border border-[#7C6CF0]/15 dark:border-[#3D3759] space-y-4">
+                <div className="p-8 sm:p-12 text-center rounded-3xl bg-white dark:bg-[#26223A] border border-[#7C6CF0]/15 dark:border-[#3D3759] space-y-4">
                   <div className="w-12 h-12 rounded-full bg-[#FF8A65]/15 text-[#FF8A65] mx-auto flex items-center justify-center">
                     <Sparkles className="w-6 h-6" />
                   </div>
@@ -538,7 +538,7 @@ export default function App() {
                   </button>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
                   {filteredInternships.map((internship) => (
                     <InternshipCard
                       key={internship.id}
@@ -620,10 +620,10 @@ export default function App() {
       )}
 
       {/* Clean Editorial Footer */}
-      <footer className="mt-16 border-t border-[#7C6CF0]/10 dark:border-[#3D3759] bg-white/60 dark:bg-[#1E1A2C]/60 backdrop-blur-xs py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#6B6880] dark:text-[#A5A0BA]">
-          <div className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded-lg bg-gradient-to-tr from-[#7C6CF0] to-[#FF8A65] flex items-center justify-center text-white text-[10px] font-bold">
+      <footer className="mt-12 sm:mt-16 border-t border-[#7C6CF0]/10 dark:border-[#3D3759] bg-white/60 dark:bg-[#1E1A2C]/60 backdrop-blur-xs py-7 sm:py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-[#6B6880] dark:text-[#A5A0BA]">
+          <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 text-center md:text-left">
+            <div className="w-5 h-5 rounded-lg bg-gradient-to-tr from-[#7C6CF0] to-[#FF8A65] flex items-center justify-center text-white text-[10px] font-bold shrink-0">
               ✦
             </div>
             <span className="font-extrabold text-[#2D2A3E] dark:text-[#F2EEFF]">
@@ -632,7 +632,7 @@ export default function App() {
             <span>— 100% Remote Tech Fellowships Across India</span>
           </div>
 
-          <div className="flex items-center gap-6">
+          <div className="flex flex-wrap items-center justify-center md:justify-end gap-x-5 gap-y-2.5">
             <button onClick={() => setCurrentTab('discover')} className="hover:text-[#7C6CF0] transition-colors cursor-pointer">
               Explore Internships
             </button>
@@ -643,7 +643,7 @@ export default function App() {
               Reviews
             </button>
             <button onClick={() => setCurrentTab('coach')} className="hover:text-[#7C6CF0] transition-colors cursor-pointer">
-              AI Coach & Voice
+              AI Coach &amp; Voice
             </button>
             {currentUser?.role === 'admin' && (
               <button onClick={() => setCurrentTab('admin')} className="hover:text-emerald-500 transition-colors font-bold text-emerald-600 dark:text-emerald-400 cursor-pointer">

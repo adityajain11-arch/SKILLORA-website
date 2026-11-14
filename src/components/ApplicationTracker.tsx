@@ -111,9 +111,9 @@ export const ApplicationTracker: React.FC<ApplicationTrackerProps> = ({
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* 5-Step Connected Milestone Roadmap */}
-      <section className="p-6 sm:p-10 rounded-3xl bg-white dark:bg-[#26223A] border border-[#7C6CF0]/15 dark:border-[#3D3759] cozy-card-shadow space-y-10">
+      <section className="p-5 sm:p-10 rounded-3xl bg-white dark:bg-[#26223A] border border-[#7C6CF0]/15 dark:border-[#3D3759] cozy-card-shadow space-y-8 sm:space-y-10">
         {/* Header Row */}
-        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 border-b border-[#7C6CF0]/10 dark:border-[#3D3759] pb-6">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 sm:gap-6 border-b border-[#7C6CF0]/10 dark:border-[#3D3759] pb-5 sm:pb-6">
           <div className="space-y-1.5 max-w-2xl">
             <div className="text-xs font-semibold text-[#7C6CF0] dark:text-[#A99CFF]">
               Workvanta Internship Track Record · 5 Milestones
@@ -150,7 +150,7 @@ export const ApplicationTracker: React.FC<ApplicationTrackerProps> = ({
             />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-7 lg:gap-5 relative z-10">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 sm:gap-7 lg:gap-5 relative z-10">
             {JOURNEY_MILESTONES.map((item, idx) => {
               const stepNum = idx + 1;
               const isReached = stepNum <= completedStepIndex;
@@ -158,14 +158,14 @@ export const ApplicationTracker: React.FC<ApplicationTrackerProps> = ({
               return (
                 <div
                   key={item.step}
-                  className="flex flex-col items-center text-center rounded-2xl p-3"
+                  className="flex flex-col items-center text-center rounded-2xl p-2 sm:p-3"
                 >
-                  <div className="relative mb-5">
+                  <div className="relative mb-4 sm:mb-5">
                     <div
-                      className={`w-[76px] h-[76px] rounded-full border-2 border-dashed flex items-center justify-center bg-white dark:bg-[#26223A] ${item.haloBorder}`}
+                      className={`w-[72px] h-[72px] sm:w-[76px] sm:h-[76px] rounded-full border-2 border-dashed flex items-center justify-center bg-white dark:bg-[#26223A] ${item.haloBorder}`}
                     >
                       <div
-                        className={`w-[60px] h-[60px] rounded-full bg-gradient-to-br ${item.gradient} ${item.glowShadow} text-white flex items-center justify-center font-extrabold text-xl tracking-tight tabular-nums`}
+                        className={`w-[56px] h-[56px] sm:w-[60px] sm:h-[60px] rounded-full bg-gradient-to-br ${item.gradient} ${item.glowShadow} text-white flex items-center justify-center font-extrabold text-lg sm:text-xl tracking-tight tabular-nums`}
                       >
                         {item.step}
                       </div>
@@ -181,11 +181,11 @@ export const ApplicationTracker: React.FC<ApplicationTrackerProps> = ({
                     )}
                   </div>
 
-                  <h3 className="text-sm sm:text-[15px] font-bold text-[#2D2A3E] dark:text-[#F2EEFF] leading-snug mb-2">
+                  <h3 className="text-sm sm:text-[15px] font-bold text-[#2D2A3E] dark:text-[#F2EEFF] leading-snug mb-1.5 sm:mb-2">
                     {item.title}
                   </h3>
 
-                  <p className="text-xs leading-relaxed text-[#6B6880] dark:text-[#A5A0BA] max-w-[23ch]">
+                  <p className="text-xs leading-relaxed text-[#6B6880] dark:text-[#A5A0BA] max-w-[28ch] sm:max-w-[23ch]">
                     {item.description}
                   </p>
                 </div>
@@ -201,13 +201,13 @@ export const ApplicationTracker: React.FC<ApplicationTrackerProps> = ({
           type="button"
           onClick={() => setOfferMenuOpen((prev) => !prev)}
           aria-expanded={offerMenuOpen}
-          className="w-full px-6 py-4 flex items-center justify-between gap-4 text-left hover:bg-[#FFF8F0]/70 dark:hover:bg-[#1E1A2C]/60 transition-colors cursor-pointer"
+          className="w-full px-4 sm:px-6 py-4 flex items-center justify-between gap-3 sm:gap-4 text-left hover:bg-[#FFF8F0]/70 dark:hover:bg-[#1E1A2C]/60 transition-colors cursor-pointer"
         >
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 min-w-0">
             <div className="w-9 h-9 rounded-2xl bg-[#34D399]/15 text-[#059669] dark:text-[#5EE3B0] flex items-center justify-center shrink-0">
               <Award className="w-5 h-5" />
             </div>
-            <div>
+            <div className="min-w-0">
               <div className="text-sm font-bold text-[#2D2A3E] dark:text-[#F2EEFF]">
                 Offer Letter Menu
               </div>
@@ -220,23 +220,23 @@ export const ApplicationTracker: React.FC<ApplicationTrackerProps> = ({
           </div>
 
           <ChevronDown
-            className={`w-4 h-4 text-[#6B6880] dark:text-[#A5A0BA] transition-transform duration-200 ${
+            className={`w-4 h-4 text-[#6B6880] dark:text-[#A5A0BA] transition-transform duration-200 shrink-0 ${
               offerMenuOpen ? 'rotate-180' : ''
             }`}
           />
         </button>
 
         {offerMenuOpen && (
-          <div className="border-t border-[#7C6CF0]/10 dark:border-[#3D3759] px-6 py-4 space-y-3 bg-[#FFF8F0]/40 dark:bg-[#1E1A2C]/40">
+          <div className="border-t border-[#7C6CF0]/10 dark:border-[#3D3759] px-4 sm:px-6 py-4 space-y-3 bg-[#FFF8F0]/40 dark:bg-[#1E1A2C]/40">
             {offerApplications.length === 0 ? (
-              <div className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="text-xs text-[#6B6880] dark:text-[#A5A0BA]">
+              <div className="py-3 sm:py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="text-xs text-[#6B6880] dark:text-[#A5A0BA] leading-relaxed">
                   No offer letters have been issued yet. Apply to an internship and admissions will dispatch your official offer letter to this menu.
                 </div>
                 <button
                   type="button"
                   onClick={onExploreMore}
-                  className="px-4 py-2 rounded-full text-xs font-bold bg-[#7C6CF0] hover:bg-[#6a59e6] dark:bg-[#A99CFF] dark:hover:bg-[#9788f5] text-white dark:text-[#1B1826] transition-all inline-flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer"
+                  className="w-full sm:w-auto px-4 py-2.5 sm:py-2 rounded-full text-xs font-bold bg-[#7C6CF0] hover:bg-[#6a59e6] dark:bg-[#A99CFF] dark:hover:bg-[#9788f5] text-white dark:text-[#1B1826] transition-all inline-flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer"
                 >
                   <span>Explore Internships</span>
                   <ArrowUpRight className="w-3.5 h-3.5" />
@@ -247,9 +247,9 @@ export const ApplicationTracker: React.FC<ApplicationTrackerProps> = ({
                 {offerApplications.map((app) => (
                   <div
                     key={app.id}
-                    className="py-3 first:pt-1 last:pb-1 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                    className="py-3.5 first:pt-1 last:pb-1 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
                       <div className="w-9 h-9 rounded-xl overflow-hidden border border-[#7C6CF0]/10 dark:border-[#3D3759] shrink-0">
                         <CompanyLogo
                           src={app.companyLogo}
@@ -257,11 +257,11 @@ export const ApplicationTracker: React.FC<ApplicationTrackerProps> = ({
                           className="w-full h-full object-cover rounded-xl"
                         />
                       </div>
-                      <div>
-                        <div className="text-xs font-bold text-[#2D2A3E] dark:text-[#F2EEFF]">
+                      <div className="min-w-0">
+                        <div className="text-xs font-bold text-[#2D2A3E] dark:text-[#F2EEFF] truncate">
                           {app.roleTitle}
                         </div>
-                        <div className="text-[11px] text-[#6B6880] dark:text-[#A5A0BA] flex items-center gap-1.5">
+                        <div className="text-[11px] text-[#6B6880] dark:text-[#A5A0BA] flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
                           <span>{app.company}</span>
                           {app.offerLetter?.stipendAmount && (
                             <>
@@ -279,12 +279,12 @@ export const ApplicationTracker: React.FC<ApplicationTrackerProps> = ({
                       </div>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-2 shrink-0">
+                    <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 shrink-0">
                       {isOfferedStage(app) && (
                         <button
                           type="button"
                           onClick={() => downloadOfferLetterPdfFromApplication(app, candidateName)}
-                          className="px-4 py-2 rounded-full bg-[#7C6CF0] hover:bg-[#6a59e6] dark:bg-[#A99CFF] dark:hover:bg-[#9788f5] text-white dark:text-[#1B1826] text-xs font-bold inline-flex items-center gap-1.5 shadow-xs transition-all whitespace-nowrap cursor-pointer"
+                          className="w-full sm:w-auto px-4 py-2.5 sm:py-2 rounded-full bg-[#7C6CF0] hover:bg-[#6a59e6] dark:bg-[#A99CFF] dark:hover:bg-[#9788f5] text-white dark:text-[#1B1826] text-xs font-bold inline-flex items-center justify-center gap-1.5 shadow-xs transition-all whitespace-nowrap cursor-pointer"
                         >
                           <Download className="w-3.5 h-3.5" />
                           <span>Download Offer Letter</span>
@@ -297,7 +297,7 @@ export const ApplicationTracker: React.FC<ApplicationTrackerProps> = ({
                           onClick={() =>
                             setViewingOffer({ offer: app.offerLetter!, applicationId: app.id })
                           }
-                          className="px-4 py-2 rounded-full bg-[#34D399]/20 hover:bg-[#34D399]/30 text-[#006949] dark:text-[#5EE3B0] text-xs font-bold inline-flex items-center gap-1.5 border border-[#34D399]/30 transition-all whitespace-nowrap cursor-pointer"
+                          className="w-full sm:w-auto px-4 py-2.5 sm:py-2 rounded-full bg-[#34D399]/20 hover:bg-[#34D399]/30 text-[#006949] dark:text-[#5EE3B0] text-xs font-bold inline-flex items-center justify-center gap-1.5 border border-[#34D399]/30 transition-all whitespace-nowrap cursor-pointer"
                         >
                           <FileText className="w-3.5 h-3.5" />
                           <span>View Offer Letter</span>

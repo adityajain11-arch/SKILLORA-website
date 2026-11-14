@@ -83,14 +83,16 @@ const CurtainBottomTassels: React.FC = () => (
     aria-hidden="true"
   >
     <div className="h-2 w-full bg-gradient-to-b from-[#d1fae5] via-[#34d399] to-[#059669] border-y border-emerald-100/80 shadow-xs" />
-    <div className="flex items-start justify-around px-5 -mt-px">
+    <div className="flex items-start justify-around px-1.5 sm:px-5 -mt-px">
       {[0, 1, 2, 3, 4, 5].map((idx) => (
         <svg
           key={idx}
           width="22"
           height="36"
           viewBox="0 0 22 36"
-          className="drop-shadow-xs overflow-visible"
+          className={`w-4 h-7 sm:w-[22px] sm:h-[36px] drop-shadow-xs overflow-visible ${
+            idx === 1 || idx === 4 ? 'hidden sm:block' : ''
+          }`}
         >
           <line x1="11" y1="0" x2="11" y2="9" stroke="#10b981" strokeWidth="2" strokeLinecap="round" />
           <circle cx="11" cy="11" r="3" fill="#6ee7b7" stroke="#047857" strokeWidth="1" />
@@ -278,15 +280,15 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   };
 
   return (
-    <div className="min-h-[82vh] flex items-center justify-center py-4 px-2 sm:px-4">
-      <div className="w-full max-w-3xl flex items-center justify-center gap-2 sm:gap-6">
+    <div className="min-h-[78vh] sm:min-h-[82vh] flex items-center justify-center py-3 sm:py-4 px-1 sm:px-4">
+      <div className="w-full max-w-3xl flex items-center justify-center gap-1.5 sm:gap-6">
         {/* LEFT SIDE ORANGE VERTICAL ROPE (Always visible in viewport when closed; zero text) */}
         <motion.div
           initial={false}
           animate={{ opacity: curtainOpen ? 0 : 1 }}
           transition={{ duration: 0.28 }}
-          className={`w-14 sm:w-20 shrink-0 select-none flex items-center justify-center ${
-            curtainOpen ? 'pointer-events-none' : 'pointer-events-auto'
+          className={`w-11 sm:w-20 shrink-0 select-none flex items-center justify-center ${
+            curtainOpen ? 'pointer-events-none hidden sm:flex' : 'pointer-events-auto flex'
           }`}
           aria-hidden={curtainOpen}
         >
@@ -299,7 +301,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 openCurtain(true);
               }
             }}
-            className={`overflow-visible touch-none cursor-pointer ${
+            className={`w-11 h-[250px] sm:w-[72px] sm:h-[340px] overflow-visible touch-none cursor-pointer ${
               !curtainOpen ? 'rope-sway' : ''
             }`}
             role="img"
@@ -427,11 +429,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({
         </motion.div>
 
         {/* MIDDLE STAGE: SOFT PINK SWAYING CURTAINS PARTING LEFT & RIGHT VIA CSS ANIMATION */}
-        <div className="relative flex-1 max-w-lg min-h-[600px] rounded-3xl overflow-hidden bg-white dark:bg-[#26223A] border border-pink-200/70 dark:border-[#3D3759] shadow-2xl flex flex-col justify-center">
+        <div className="relative flex-1 min-w-0 max-w-lg min-h-[480px] sm:min-h-[600px] rounded-3xl overflow-hidden bg-white dark:bg-[#26223A] border border-pink-200/70 dark:border-[#3D3759] shadow-2xl flex flex-col justify-center">
           {/* Registration Form (or Login Form when Login clicked in top Navbar) Beneath the Curtain */}
           <div
             aria-hidden={!curtainOpen}
-            className={`p-6 sm:p-8 space-y-4 transition-opacity duration-300 ${
+            className={`p-4 sm:p-8 space-y-4 transition-opacity duration-300 ${
               curtainOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none select-none'
             }`}
           >

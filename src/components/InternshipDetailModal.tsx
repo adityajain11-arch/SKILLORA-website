@@ -27,9 +27,9 @@ export const InternshipDetailModal: React.FC<InternshipDetailModalProps> = ({
       <div className="relative w-full max-w-3xl rounded-3xl bg-[#FFF8F0] dark:bg-[#26223A] border border-[#7C6CF0]/20 dark:border-[#3D3759] shadow-2xl overflow-hidden max-h-[92vh] flex flex-col">
         
         {/* Header Bar */}
-        <div className="p-6 bg-white dark:bg-[#1E1A2C] border-b border-[#7C6CF0]/15 dark:border-[#3D3759] flex items-start justify-between gap-4 shrink-0">
-          <div className="flex items-start gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-[#FFF8F0] dark:bg-[#26223A] border border-[#7C6CF0]/15 dark:border-[#3D3759] p-2 overflow-hidden shadow-xs shrink-0 flex items-center justify-center">
+        <div className="p-4 sm:p-6 bg-white dark:bg-[#1E1A2C] border-b border-[#7C6CF0]/15 dark:border-[#3D3759] flex items-start justify-between gap-3 sm:gap-4 shrink-0">
+          <div className="flex items-start gap-3 sm:gap-4 min-w-0">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-[#FFF8F0] dark:bg-[#26223A] border border-[#7C6CF0]/15 dark:border-[#3D3759] p-2 overflow-hidden shadow-xs shrink-0 flex items-center justify-center">
               <CompanyLogo
                 src={internship.companyLogo}
                 company={internship.company}
@@ -37,8 +37,8 @@ export const InternshipDetailModal: React.FC<InternshipDetailModalProps> = ({
               />
             </div>
 
-            <div>
-              <div className="flex items-center gap-2">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                 <span className="text-xs font-bold text-[#7C6CF0] dark:text-[#A99CFF] uppercase tracking-wider">
                   {internship.company}
                 </span>
@@ -84,7 +84,7 @@ export const InternshipDetailModal: React.FC<InternshipDetailModalProps> = ({
         </div>
 
         {/* Scrollable Content Body */}
-        <div className="p-6 sm:p-8 space-y-8 overflow-y-auto">
+        <div className="p-4 sm:p-8 space-y-6 sm:space-y-8 overflow-y-auto">
           
           {/* Fellowship Support & Match Banner (No fee numbers shown with subject) */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-5 rounded-2xl bg-white dark:bg-[#1E1A2C] border border-[#7C6CF0]/15 dark:border-[#3D3759] shadow-xs">
@@ -156,10 +156,10 @@ export const InternshipDetailModal: React.FC<InternshipDetailModalProps> = ({
 
           {/* Transparent Interview Roadmap */}
           <div>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <h3 className="text-base font-bold text-[#2D2A3E] dark:text-[#F2EEFF] flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-[#7C6CF0] dark:text-[#A99CFF]" />
-                Transparent Remote Interview Roadmap (Zero Surprise Grinds)
+                <Calendar className="w-4 h-4 text-[#7C6CF0] dark:text-[#A99CFF] shrink-0" />
+                <span>Transparent Remote Interview Roadmap</span>
               </h3>
               <span className="text-xs text-[#6B6880] dark:text-[#A5A0BA]">3 simple steps</span>
             </div>
@@ -168,17 +168,17 @@ export const InternshipDetailModal: React.FC<InternshipDetailModalProps> = ({
               {internship.interviewRoadmap.map((step) => (
                 <div
                   key={step.step}
-                  className="p-4 rounded-2xl bg-white dark:bg-[#1E1A2C] border border-[#7C6CF0]/10 dark:border-[#3D3759] flex items-start gap-4"
+                  className="p-4 rounded-2xl bg-white dark:bg-[#1E1A2C] border border-[#7C6CF0]/10 dark:border-[#3D3759] flex items-start gap-3 sm:gap-4"
                 >
                   <div className="w-8 h-8 rounded-full bg-[#7C6CF0]/15 dark:bg-[#A99CFF]/20 text-[#7C6CF0] dark:text-[#A99CFF] font-bold text-sm flex items-center justify-center shrink-0">
                     {step.step}
                   </div>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
                       <h4 className="text-sm font-bold text-[#2D2A3E] dark:text-[#F2EEFF]">
                         {step.title}
                       </h4>
-                      <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-[#7C6CF0]/10 text-[#7C6CF0] dark:text-[#A99CFF]">
+                      <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-[#7C6CF0]/10 text-[#7C6CF0] dark:text-[#A99CFF] shrink-0">
                         {step.duration}
                       </span>
                     </div>
@@ -197,7 +197,7 @@ export const InternshipDetailModal: React.FC<InternshipDetailModalProps> = ({
               <p className="text-xs sm:text-sm italic text-[#2D2A3E] dark:text-[#F2EEFF] leading-relaxed">
                 "{internship.alumniQuote.quote}"
               </p>
-              <div className="mt-2 text-xs text-[#6B6880] dark:text-[#A5A0BA] font-medium flex items-center gap-2">
+              <div className="mt-2 text-xs text-[#6B6880] dark:text-[#A5A0BA] font-medium flex flex-wrap items-center gap-x-2 gap-y-0.5">
                 <span className="font-bold text-[#2D2A3E] dark:text-[#F2EEFF]">{internship.alumniQuote.studentName}</span>
                 <span>·</span>
                 <span>{internship.alumniQuote.school}</span>
@@ -210,12 +210,12 @@ export const InternshipDetailModal: React.FC<InternshipDetailModalProps> = ({
         </div>
 
         {/* Modal Footer CTA */}
-        <div className="p-4 sm:p-6 bg-white dark:bg-[#1E1A2C] border-t border-[#7C6CF0]/15 dark:border-[#3D3759] flex items-center justify-between gap-4 shrink-0">
-          <div className="text-xs text-[#6B6880] dark:text-[#A5A0BA]">
+        <div className="p-4 sm:p-6 bg-white dark:bg-[#1E1A2C] border-t border-[#7C6CF0]/15 dark:border-[#3D3759] flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 shrink-0">
+          <div className="text-xs text-[#6B6880] dark:text-[#A5A0BA] text-center sm:text-left">
             Deadline: <span className="font-semibold text-[#2D2A3E] dark:text-[#F2EEFF]">{internship.deadline}</span>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center justify-end gap-2.5 sm:gap-3 w-full sm:w-auto">
             <button
               onClick={onClose}
               className="px-4 py-2.5 rounded-full text-xs font-semibold text-[#6B6880] dark:text-[#A5A0BA] hover:bg-[#7C6CF0]/10 transition-colors"
@@ -227,10 +227,10 @@ export const InternshipDetailModal: React.FC<InternshipDetailModalProps> = ({
                 onClose();
                 onApply(internship);
               }}
-              className="px-6 py-2.5 rounded-full text-xs font-semibold bg-[#7C6CF0] hover:bg-[#6a59e6] dark:bg-[#A99CFF] dark:hover:bg-[#9788f5] text-white dark:text-[#1B1826] shadow-md hover:shadow-lg transition-all flex items-center gap-2"
+              className="flex-1 sm:flex-initial justify-center px-5 sm:px-6 py-2.5 rounded-full text-xs font-semibold bg-[#7C6CF0] hover:bg-[#6a59e6] dark:bg-[#A99CFF] dark:hover:bg-[#9788f5] text-white dark:text-[#1B1826] shadow-md hover:shadow-lg transition-all flex items-center gap-2"
             >
               <span>Apply to {internship.company}</span>
-              <ArrowRight className="w-4 h-4" />
+              <ArrowRight className="w-4 h-4 shrink-0" />
             </button>
           </div>
         </div>

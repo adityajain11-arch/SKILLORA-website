@@ -642,7 +642,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       )}
 
       {/* Top Banner & Control Deck */}
-      <div className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-[#26223A] border border-[#7C6CF0]/15 dark:border-[#3D3759] cozy-card-shadow flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <div className="p-5 sm:p-8 rounded-3xl bg-white dark:bg-[#26223A] border border-[#7C6CF0]/15 dark:border-[#3D3759] cozy-card-shadow flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#7C6CF0]/10 text-xs font-semibold text-[#7C6CF0] dark:text-[#A99CFF]">
             <ShieldCheck className="w-3.5 h-3.5 text-[#34D399]" />
@@ -687,17 +687,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       </div>
 
       {/* Navigation Sub-Tabs */}
-      <div className="flex p-1.5 rounded-2xl bg-[#FFF8F0] dark:bg-[#1E1A2C] border border-[#7C6CF0]/15 dark:border-[#3D3759] w-full sm:w-fit">
+      <div className="grid grid-cols-1 sm:inline-flex gap-1.5 sm:gap-1 p-1.5 rounded-2xl bg-[#FFF8F0] dark:bg-[#1E1A2C] border border-[#7C6CF0]/15 dark:border-[#3D3759] w-full sm:w-fit">
         <button
           onClick={() => setActiveTab('applicants')}
-          className={`flex-1 sm:flex-none px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+          className={`px-4 sm:px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-between sm:justify-center gap-2 cursor-pointer ${
             activeTab === 'applicants'
               ? 'bg-white dark:bg-[#26223A] text-[#7C6CF0] dark:text-[#A99CFF] shadow-xs'
               : 'text-[#6B6880] dark:text-[#A5A0BA] hover:text-[#2D2A3E]'
           }`}
         >
-          <GraduationCap className="w-4 h-4" />
-          <span>Applications & Offers</span>
+          <span className="flex items-center gap-2">
+            <GraduationCap className="w-4 h-4 shrink-0" />
+            <span>Applications & Offers</span>
+          </span>
           <span className="px-2 py-0.5 rounded-full text-[10px] bg-[#7C6CF0]/15 text-[#7C6CF0] dark:text-[#A99CFF]">
             {applicants.length}
           </span>
@@ -705,14 +707,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
         <button
           onClick={() => setActiveTab('internships')}
-          className={`flex-1 sm:flex-none px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+          className={`px-4 sm:px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-between sm:justify-center gap-2 cursor-pointer ${
             activeTab === 'internships'
               ? 'bg-white dark:bg-[#26223A] text-[#7C6CF0] dark:text-[#A99CFF] shadow-xs'
               : 'text-[#6B6880] dark:text-[#A5A0BA] hover:text-[#2D2A3E]'
           }`}
         >
-          <Briefcase className="w-4 h-4" />
-          <span>Remote Internships</span>
+          <span className="flex items-center gap-2">
+            <Briefcase className="w-4 h-4 shrink-0" />
+            <span>Remote Internships</span>
+          </span>
           <span className="px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
             {internshipsList.length}
           </span>
@@ -720,14 +724,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
         <button
           onClick={() => setActiveTab('users')}
-          className={`flex-1 sm:flex-none px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+          className={`px-4 sm:px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-between sm:justify-center gap-2 cursor-pointer ${
             activeTab === 'users'
               ? 'bg-white dark:bg-[#26223A] text-[#7C6CF0] dark:text-[#A99CFF] shadow-xs'
               : 'text-[#6B6880] dark:text-[#A5A0BA] hover:text-[#2D2A3E]'
           }`}
         >
-          <UserCheck className="w-4 h-4" />
-          <span>User Signups & Logins</span>
+          <span className="flex items-center gap-2">
+            <UserCheck className="w-4 h-4 shrink-0" />
+            <span>User Signups & Logins</span>
+          </span>
           <span className="px-2 py-0.5 rounded-full text-[10px] bg-cyan-500/15 text-cyan-600 dark:text-cyan-400">
             {registeredUsers.length}
           </span>
@@ -830,9 +836,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           {/* Applicants List Table */}
           <div className="rounded-3xl bg-white dark:bg-[#26223A] border border-[#7C6CF0]/15 dark:border-[#3D3759] overflow-hidden cozy-card-shadow">
             
-            <div className="p-5 border-b border-[#7C6CF0]/10 dark:border-[#3D3759] flex items-center justify-between">
+            <div className="p-4 sm:p-5 border-b border-[#7C6CF0]/10 dark:border-[#3D3759] flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                <GraduationCap className="w-4 h-4 text-[#7C6CF0]" />
+                <GraduationCap className="w-4 h-4 text-[#7C6CF0] shrink-0" />
                 <h3 className="text-sm font-bold text-[#2D2A3E] dark:text-[#F2EEFF]">
                   Candidate Career Journeys & Admissions ({filteredApplicants.length})
                 </h3>
@@ -843,21 +849,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
 
             {filteredApplicants.length === 0 ? (
-              <div className="p-12 text-center text-[#6B6880] dark:text-[#A5A0BA] space-y-2">
+              <div className="p-10 sm:p-12 text-center text-[#6B6880] dark:text-[#A5A0BA] space-y-2">
                 <Users className="w-8 h-8 mx-auto text-[#7C6CF0]/40" />
                 <p className="text-sm font-semibold">No candidate submissions match your query</p>
                 <p className="text-xs">Try clearing search terms or status filters.</p>
               </div>
             ) : (
-              <div className="divide-y divide-[#7C6CF0]/10 dark:divide-[#3D3759] overflow-x-auto">
+              <div className="divide-y divide-[#7C6CF0]/10 dark:divide-[#3D3759]">
                 {filteredApplicants.map((app) => (
                   <div
                     key={app.id}
-                    className="p-5 hover:bg-[#FFF8F0]/40 dark:hover:bg-[#1E1A2C]/40 transition-colors flex flex-col xl:flex-row xl:items-center justify-between gap-4"
+                    className="p-4 sm:p-5 hover:bg-[#FFF8F0]/40 dark:hover:bg-[#1E1A2C]/40 transition-colors flex flex-col xl:flex-row xl:items-center justify-between gap-4"
                   >
                     
                     {/* Candidate & Role Profile */}
-                    <div className="flex items-start sm:items-center gap-4 min-w-[320px]">
+                    <div className="flex items-start sm:items-center gap-3.5 sm:gap-4 min-w-0 flex-1">
                       <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-[#7C6CF0] to-[#FF8A65] p-0.5 shadow-xs shrink-0 overflow-hidden">
                         <CompanyLogo
                           src={app.companyLogo}
@@ -866,8 +872,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         />
                       </div>
 
-                      <div className="space-y-0.5">
-                        <div className="flex items-center gap-2">
+                      <div className="space-y-0.5 min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
                           <span className="font-bold text-sm text-[#2D2A3E] dark:text-[#F2EEFF]">
                             {app.applicantName || 'Candidate'}
                           </span>
@@ -876,7 +882,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           </span>
                         </div>
 
-                        <div className="text-xs text-[#6B6880] dark:text-[#A5A0BA] flex items-center gap-1.5">
+                        <div className="text-xs text-[#6B6880] dark:text-[#A5A0BA] flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
                           <span className="font-medium text-[#2D2A3E] dark:text-[#F2EEFF]">
                             {app.roleTitle}
                           </span>
@@ -886,15 +892,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           </span>
                         </div>
 
-                        <div className="text-[11px] text-[#6B6880] dark:text-[#A5A0BA] flex items-center gap-2">
+                        <div className="text-[11px] text-[#6B6880] dark:text-[#A5A0BA] flex flex-wrap items-center gap-x-2 gap-y-0.5">
                           <span>Applied: {app.appliedDate}</span>
                           <span>·</span>
-                          <span className="truncate max-w-[180px]">{app.applicantEmail}</span>
+                          <span className="break-all sm:truncate sm:max-w-[220px]">{app.applicantEmail}</span>
                         </div>
 
                         {app.nextStepTitle && (
                           <div className="text-[11px] text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-1 mt-0.5">
-                            <Clock className="w-3 h-3" />
+                            <Clock className="w-3 h-3 shrink-0" />
                             <span>{app.nextStepTitle}</span>
                           </div>
                         )}
@@ -1066,7 +1072,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
 
                 {/* Edit & Delete actions */}
-                <div className="pt-3 border-t border-[#7C6CF0]/10 dark:border-[#3D3759] flex items-center justify-between text-xs">
+                <div className="pt-3 border-t border-[#7C6CF0]/10 dark:border-[#3D3759] flex flex-wrap items-center justify-between gap-2 text-xs">
                   <span className="text-[11px] text-[#6B6880] dark:text-[#A5A0BA]">
                     Season: {item.season || 'Summer 2026'}
                   </span>
@@ -1104,7 +1110,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             {/* Search & Dropdown Filters Row */}
             <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3">
               {/* Search Users by Name, University, Grad Year, Email */}
-              <div className="relative flex-1 min-w-[240px]">
+              <div className="relative flex-1 min-w-0 sm:min-w-[240px]">
                 <Search className="w-4 h-4 text-[#6B6880] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <input
                   type="text"
@@ -1210,9 +1216,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
           {/* User Directory Table */}
           <div className="rounded-3xl bg-white dark:bg-[#26223A] border border-[#7C6CF0]/15 dark:border-[#3D3759] overflow-hidden cozy-card-shadow">
-            <div className="p-5 border-b border-[#7C6CF0]/10 dark:border-[#3D3759] flex items-center justify-between">
+            <div className="p-4 sm:p-5 border-b border-[#7C6CF0]/10 dark:border-[#3D3759] flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                <UserCheck className="w-4 h-4 text-cyan-500" />
+                <UserCheck className="w-4 h-4 text-cyan-500 shrink-0" />
                 <h3 className="text-sm font-bold text-[#2D2A3E] dark:text-[#F2EEFF]">
                   User Signups & Verified Logins ({filteredUsers.length})
                 </h3>
@@ -1261,7 +1267,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 )}
               </div>
             ) : (
-              <div className="divide-y divide-[#7C6CF0]/10 dark:divide-[#3D3759] overflow-x-auto">
+              <div className="divide-y divide-[#7C6CF0]/10 dark:divide-[#3D3759]">
                 {filteredUsers.map((u) => {
                   const userAppsCount = applicants.filter((a) => a.applicantEmail === u.email || a.userId === u.id).length;
 
@@ -1270,12 +1276,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       key={u.id}
                       className="p-4 sm:p-5 hover:bg-[#FFF8F0]/40 dark:hover:bg-[#1E1A2C]/40 transition-colors flex flex-col md:flex-row md:items-center justify-between gap-4 text-xs"
                     >
-                      <div className="flex items-start sm:items-center gap-3.5">
+                      <div className="flex items-start sm:items-center gap-3.5 min-w-0 flex-1">
                         <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#7C6CF0] to-[#34D399] flex items-center justify-center text-white font-bold text-sm shrink-0">
                           {u.name?.charAt(0) || 'U'}
                         </div>
 
-                        <div className="space-y-0.5">
+                        <div className="space-y-0.5 min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="font-bold text-sm text-[#2D2A3E] dark:text-[#F2EEFF]">
                               {u.name}
@@ -1294,9 +1300,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             </span>
                           </div>
 
-                          <div className="text-[11px] text-[#6B6880] dark:text-[#A5A0BA] flex items-center gap-2">
-                            <Mail className="w-3 h-3 text-[#7C6CF0]" />
-                            <span>{u.email}</span>
+                          <div className="text-[11px] text-[#6B6880] dark:text-[#A5A0BA] flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                            <span className="inline-flex items-center gap-1.5 min-w-0">
+                              <Mail className="w-3 h-3 text-[#7C6CF0] shrink-0" />
+                              <span className="break-all">{u.email}</span>
+                            </span>
                             <span>·</span>
                             <span>{u.university}</span>
                           </div>
@@ -1318,7 +1326,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           <span className="font-bold text-[#7C6CF0] text-xs">{userAppsCount} submitted</span>
                         </div>
 
-                        <div className="text-[11px] text-[#6B6880] dark:text-[#A5A0BA] text-right space-y-0.5">
+                        <div className="text-[11px] text-[#6B6880] dark:text-[#A5A0BA] text-left md:text-right space-y-0.5">
                           {u.lastLoginAt && (
                             <div>
                               Last login:{' '}
@@ -1353,31 +1361,31 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {/* ======================================================== */}
       {schedulingApp && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200">
-          <div className="relative w-full max-w-lg rounded-3xl bg-white dark:bg-[#26223A] border border-[#FF8A65]/30 shadow-2xl overflow-hidden flex flex-col">
+          <div className="relative w-full max-w-lg rounded-3xl bg-white dark:bg-[#26223A] border border-[#FF8A65]/30 shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
             
-            <div className="p-6 bg-[#FFF8F0] dark:bg-[#1E1A2C] border-b border-[#FF8A65]/20 flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-[#FF8A65]/20 text-[#FF8A65]">
+            <div className="p-5 sm:p-6 bg-[#FFF8F0] dark:bg-[#1E1A2C] border-b border-[#FF8A65]/20 flex items-center justify-between gap-3 shrink-0">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="p-2 rounded-xl bg-[#FF8A65]/20 text-[#FF8A65] shrink-0">
                   <Video className="w-5 h-5" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <span className="text-[11px] font-bold text-[#FF8A65] uppercase tracking-wider block">
                     Admissions Interview Jam
                   </span>
-                  <h3 className="text-base font-bold text-[#2D2A3E] dark:text-[#F2EEFF]">
+                  <h3 className="text-base font-bold text-[#2D2A3E] dark:text-[#F2EEFF] truncate">
                     Schedule Call with {schedulingApp.applicantName}
                   </h3>
                 </div>
               </div>
               <button
                 onClick={() => setSchedulingApp(null)}
-                className="p-2 rounded-full text-[#6B6880] hover:bg-[#FF8A65]/10 cursor-pointer"
+                className="p-2 rounded-full text-[#6B6880] hover:bg-[#FF8A65]/10 cursor-pointer shrink-0"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="p-6 space-y-4 text-xs">
+            <div className="p-5 sm:p-6 overflow-y-auto flex-1 space-y-4 text-xs">
               <div>
                 <label className="block text-xs font-semibold text-[#2D2A3E] dark:text-[#F2EEFF] mb-1">
                   Interview Jam Title
@@ -1430,7 +1438,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </div>
             </div>
 
-            <div className="p-4 bg-[#FFF8F0] dark:bg-[#1E1A2C] border-t border-[#FF8A65]/20 flex items-center justify-between">
+            <div className="p-4 bg-[#FFF8F0] dark:bg-[#1E1A2C] border-t border-[#FF8A65]/20 flex flex-wrap items-center justify-between gap-2 shrink-0">
               <button
                 type="button"
                 onClick={() => setSchedulingApp(null)}
@@ -1466,30 +1474,30 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200">
           <div className="relative w-full max-w-2xl rounded-3xl bg-white dark:bg-[#26223A] border border-emerald-500/30 shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
             
-            <div className="p-6 bg-[#FFF8F0] dark:bg-[#1E1A2C] border-b border-emerald-500/20 flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
+            <div className="p-5 sm:p-6 bg-[#FFF8F0] dark:bg-[#1E1A2C] border-b border-emerald-500/20 flex items-center justify-between gap-3 shrink-0">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 shrink-0">
                   <Briefcase className="w-5 h-5" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider block">
                     Workvanta Curriculum & Roles
                   </span>
-                  <h3 className="text-base font-bold text-[#2D2A3E] dark:text-[#F2EEFF]">
+                  <h3 className="text-base font-bold text-[#2D2A3E] dark:text-[#F2EEFF] truncate">
                     {editingInternshipId ? 'Edit Remote Internship' : 'Add New Remote Internship'}
                   </h3>
                 </div>
               </div>
               <button
                 onClick={() => setIsInternshipModalOpen(false)}
-                className="p-2 rounded-full text-[#6B6880] hover:bg-emerald-500/10 cursor-pointer"
+                className="p-2 rounded-full text-[#6B6880] hover:bg-emerald-500/10 cursor-pointer shrink-0"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <form onSubmit={handleSaveInternship} className="flex flex-col flex-1 overflow-hidden">
-              <div className="p-6 overflow-y-auto space-y-4 text-xs">
+              <div className="p-5 sm:p-6 overflow-y-auto space-y-4 text-xs">
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
@@ -1622,7 +1630,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
               </div>
 
-              <div className="p-4 bg-[#FFF8F0] dark:bg-[#1E1A2C] border-t border-emerald-500/20 flex items-center justify-between">
+              <div className="p-4 bg-[#FFF8F0] dark:bg-[#1E1A2C] border-t border-emerald-500/20 flex flex-wrap items-center justify-between gap-2 shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsInternshipModalOpen(false)}
@@ -1658,34 +1666,34 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200">
           <div className="relative w-full max-w-2xl rounded-3xl bg-white dark:bg-[#26223A] border border-[#7C6CF0]/25 dark:border-[#3D3759] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
             
-            <div className="p-6 bg-[#FFF8F0] dark:bg-[#1E1A2C] border-b border-[#7C6CF0]/15 dark:border-[#3D3759] flex items-center justify-between">
-              <div>
+            <div className="p-5 sm:p-6 bg-[#FFF8F0] dark:bg-[#1E1A2C] border-b border-[#7C6CF0]/15 dark:border-[#3D3759] flex items-center justify-between gap-3 shrink-0">
+              <div className="min-w-0">
                 <span className="text-xs font-bold text-[#7C6CF0] dark:text-[#A99CFF] uppercase tracking-wider block">
                   Application Review
                 </span>
-                <h3 className="text-lg font-bold text-[#2D2A3E] dark:text-[#F2EEFF]">
+                <h3 className="text-base sm:text-lg font-bold text-[#2D2A3E] dark:text-[#F2EEFF] truncate">
                   {reviewingApp.applicantName} — {reviewingApp.roleTitle}
                 </h3>
               </div>
               <button
                 onClick={() => setReviewingApp(null)}
-                className="p-2 rounded-full text-[#6B6880] hover:bg-[#7C6CF0]/10 cursor-pointer"
+                className="p-2 rounded-full text-[#6B6880] hover:bg-[#7C6CF0]/10 cursor-pointer shrink-0"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="p-6 overflow-y-auto space-y-6 text-xs text-[#2D2A3E] dark:text-[#F2EEFF]">
+            <div className="p-5 sm:p-6 overflow-y-auto space-y-6 text-xs text-[#2D2A3E] dark:text-[#F2EEFF]">
               
               {/* Candidate Info Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-4 rounded-2xl bg-[#FFF8F0] dark:bg-[#1E1A2C] border border-[#7C6CF0]/15">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 rounded-2xl bg-[#FFF8F0] dark:bg-[#1E1A2C] border border-[#7C6CF0]/15">
                 <div>
                   <span className="text-[11px] text-[#6B6880] dark:text-[#A5A0BA] block">University</span>
                   <span className="font-bold">{reviewingApp.applicantUniversity || 'IIT Bombay'}</span>
                 </div>
                 <div>
                   <span className="text-[11px] text-[#6B6880] dark:text-[#A5A0BA] block">Email</span>
-                  <span className="font-bold">{reviewingApp.applicantEmail || 'student@workvanta.in'}</span>
+                  <span className="font-bold break-all">{reviewingApp.applicantEmail || 'student@workvanta.in'}</span>
                 </div>
                 <div>
                   <span className="text-[11px] text-[#6B6880] dark:text-[#A5A0BA] block">Target Company</span>
@@ -1716,16 +1724,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       href={reviewingApp.portfolioUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="px-4 py-2 rounded-xl bg-[#7C6CF0]/10 text-[#7C6CF0] dark:text-[#A99CFF] font-semibold flex items-center gap-1.5 hover:underline"
+                      className="px-4 py-2 rounded-xl bg-[#7C6CF0]/10 text-[#7C6CF0] dark:text-[#A99CFF] font-semibold flex items-center gap-1.5 hover:underline max-w-full min-w-0"
                     >
-                      <ExternalLink className="w-3.5 h-3.5" />
-                      <span>Live Portfolio ({reviewingApp.portfolioUrl})</span>
+                      <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+                      <span className="truncate">Live Portfolio ({reviewingApp.portfolioUrl})</span>
                     </a>
                   )}
 
-                  <div className="px-4 py-2 rounded-xl bg-[#34D399]/15 text-[#006949] dark:text-[#5EE3B0] font-semibold flex items-center gap-1.5">
-                    <FileText className="w-3.5 h-3.5" />
-                    <span>Resume: {reviewingApp.resumeFileName || 'Student_Resume.pdf'}</span>
+                  <div className="px-4 py-2 rounded-xl bg-[#34D399]/15 text-[#006949] dark:text-[#5EE3B0] font-semibold flex items-center gap-1.5 max-w-full min-w-0">
+                    <FileText className="w-3.5 h-3.5 shrink-0" />
+                    <span className="truncate">Resume: {reviewingApp.resumeFileName || 'Student_Resume.pdf'}</span>
                   </div>
                 </div>
               </div>
@@ -1766,7 +1774,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 Close
               </button>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <button
                   type="button"
                   onClick={() => {
@@ -1806,24 +1814,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200">
           <div className="relative w-full max-w-2xl rounded-3xl bg-white dark:bg-[#26223A] border border-[#7C6CF0]/25 dark:border-[#3D3759] shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
             
-            <div className="p-6 bg-[#FFF8F0] dark:bg-[#1E1A2C] border-b border-[#7C6CF0]/15 dark:border-[#3D3759] flex items-center justify-between">
-              <div>
+            <div className="p-5 sm:p-6 bg-[#FFF8F0] dark:bg-[#1E1A2C] border-b border-[#7C6CF0]/15 dark:border-[#3D3759] flex items-center justify-between gap-3 shrink-0">
+              <div className="min-w-0">
                 <span className="text-xs font-bold text-[#6E8B6E] dark:text-[#A9C7A9] uppercase tracking-wider block">
                   Skillora Official Offer Letter Template
                 </span>
-                <h3 className="text-lg font-bold text-[#2D2A3E] dark:text-[#F2EEFF]">
+                <h3 className="text-base sm:text-lg font-bold text-[#2D2A3E] dark:text-[#F2EEFF] truncate">
                   Generate Offer Letter for {composingOfferApp.applicantName}
                 </h3>
               </div>
               <button
                 onClick={() => setComposingOfferApp(null)}
-                className="p-2 rounded-full text-[#6B6880] hover:bg-[#7C6CF0]/10 cursor-pointer"
+                className="p-2 rounded-full text-[#6B6880] hover:bg-[#7C6CF0]/10 cursor-pointer shrink-0"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="p-6 overflow-y-auto space-y-4 text-xs">
+            <div className="p-5 sm:p-6 overflow-y-auto space-y-4 text-xs">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-[#2D2A3E] dark:text-[#F2EEFF] mb-1">
@@ -1869,21 +1877,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <div className="text-[11px] font-bold uppercase tracking-wider text-[#6E8B6E] dark:text-[#A9C7A9]">
                   Locked Template Preview (Only Name, Date &amp; Domain Change)
                 </div>
-                <div className="flex justify-between font-semibold text-xs pt-1">
+                <div className="flex flex-wrap justify-between gap-2 font-semibold text-xs pt-1">
                   <span>To: {offerNameInput || 'Candidate'}</span>
                   <span>{offerDateInput || 'November 14, 2026'}</span>
                 </div>
                 <p className="text-xs leading-relaxed text-[#474554] dark:text-[#A5A0BA]">
                   Dear Candidate, Congratulations! We’re pleased to inform you that you have successfully registered for the <strong className="text-[#2D2A3E] dark:text-[#F2EEFF]">{offerDomainInput || 'Software Engineering'}</strong> Internship Program at Skillora...
                 </p>
-                <div className="flex justify-between text-[11px] text-[#6B6880] dark:text-[#A5A0BA] pt-1 border-t border-[#7C6CF0]/10">
+                <div className="flex flex-wrap justify-between gap-2 text-[11px] text-[#6B6880] dark:text-[#A5A0BA] pt-1 border-t border-[#7C6CF0]/10">
                   <span>Signed: Aditya Jain · Founder</span>
-                  <span>6394050860 · adityajain22112006@gmail.com</span>
+                  <span className="break-all">6394050860 · adityajain22112006@gmail.com</span>
                 </div>
               </div>
             </div>
 
-            <div className="p-4 bg-[#FFF8F0] dark:bg-[#1E1A2C] border-t border-[#7C6CF0]/15 flex items-center justify-between">
+            <div className="p-4 bg-[#FFF8F0] dark:bg-[#1E1A2C] border-t border-[#7C6CF0]/15 flex flex-wrap items-center justify-between gap-2 shrink-0">
               <button
                 type="button"
                 onClick={() => setComposingOfferApp(null)}

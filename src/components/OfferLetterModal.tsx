@@ -55,42 +55,44 @@ export const OfferLetterModal: React.FC<OfferLetterModalProps> = ({
   const domain = offer.roleTitle || 'Software Engineering';
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200">
-      <div className="relative w-full max-w-3xl rounded-3xl bg-white dark:bg-[#1E1A2C] border border-[#7C6CF0]/25 dark:border-[#3D3759] shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm flex items-center justify-center p-2 sm:p-6 animate-in fade-in duration-200">
+      <div className="relative w-full max-w-3xl rounded-2xl sm:rounded-3xl bg-white dark:bg-[#1E1A2C] border border-[#7C6CF0]/25 dark:border-[#3D3759] shadow-2xl overflow-hidden flex flex-col max-h-[94vh] sm:max-h-[92vh]">
         {/* Top Action Bar (hidden in print) */}
-        <div className="p-4 sm:px-6 bg-[#FFF8F0] dark:bg-[#26223A] border-b border-[#7C6CF0]/15 dark:border-[#3D3759] flex items-center justify-between gap-4 print:hidden shrink-0">
-          <div>
-            <span className="text-xs font-bold text-[#6E8B6E] dark:text-[#A9C7A9] uppercase tracking-wider block">
+        <div className="p-3.5 sm:px-6 sm:py-4 bg-[#FFF8F0] dark:bg-[#26223A] border-b border-[#7C6CF0]/15 dark:border-[#3D3759] flex flex-wrap items-center justify-between gap-2.5 sm:gap-4 print:hidden shrink-0">
+          <div className="min-w-0">
+            <span className="text-[11px] sm:text-xs font-bold text-[#6E8B6E] dark:text-[#A9C7A9] uppercase tracking-wider block">
               Skillora Internship Offer Letter
             </span>
-            <span className="text-xs text-[#6B6880] dark:text-[#A5A0BA]">
+            <span className="text-xs text-[#6B6880] dark:text-[#A5A0BA] block truncate">
               Issued to {offer.candidateName} · {offer.issuedDate}
             </span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 shrink-0">
             {applicationId && (
               <button
                 type="button"
                 onClick={handleDownloadPdf}
                 disabled={downloading}
-                className="px-4 py-2 rounded-full text-xs font-bold bg-[#34D399]/20 hover:bg-[#34D399]/30 text-[#006949] dark:text-[#5EE3B0] flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                className="px-3 sm:px-4 py-2 rounded-full text-xs font-bold bg-[#34D399]/20 hover:bg-[#34D399]/30 text-[#006949] dark:text-[#5EE3B0] flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
               >
                 <Download className="w-3.5 h-3.5" />
-                <span>{downloading ? 'Preparing PDF...' : 'Download PDF'}</span>
+                <span>{downloading ? 'Preparing...' : 'Download PDF'}</span>
               </button>
             )}
             <button
               type="button"
               onClick={handlePrint}
-              className="px-4 py-2 rounded-full text-xs font-bold bg-[#7C6CF0]/10 hover:bg-[#7C6CF0]/20 text-[#7C6CF0] dark:text-[#A99CFF] flex items-center gap-1.5 transition-colors cursor-pointer"
+              className="px-3 sm:px-4 py-2 rounded-full text-xs font-bold bg-[#7C6CF0]/10 hover:bg-[#7C6CF0]/20 text-[#7C6CF0] dark:text-[#A99CFF] flex items-center gap-1.5 transition-colors cursor-pointer"
             >
               <Printer className="w-3.5 h-3.5" />
-              <span>Print / Save PDF</span>
+              <span className="hidden xs:inline sm:inline">Print / Save PDF</span>
+              <span className="sm:hidden">Print</span>
             </button>
             <button
               type="button"
               onClick={onClose}
+              aria-label="Close offer letter modal"
               className="p-2 rounded-full text-[#6B6880] dark:text-[#A5A0BA] hover:bg-[#7C6CF0]/10 hover:text-[#2D2A3E] dark:hover:text-[#F2EEFF] transition-colors cursor-pointer"
             >
               <X className="w-5 h-5" />
@@ -99,13 +101,13 @@ export const OfferLetterModal: React.FC<OfferLetterModalProps> = ({
         </div>
 
         {/* Printable Skillora Official Offer Letter Document */}
-        <div className="relative flex-1 overflow-y-auto bg-white text-[#23262F] font-sans p-8 sm:p-14 selection:bg-[#9bb38f]/25">
+        <div className="relative flex-1 overflow-y-auto bg-white text-[#23262F] font-sans p-5 sm:p-14 selection:bg-[#9bb38f]/25">
           {/* Top-Right Geometric Accent Corner */}
           <svg
             width="210"
             height="170"
             viewBox="0 0 210 170"
-            className="absolute top-0 right-0 pointer-events-none select-none"
+            className="w-28 h-24 sm:w-[210px] sm:h-[170px] absolute top-0 right-0 pointer-events-none select-none"
             aria-hidden="true"
           >
             {/* Subtle Dot Grid */}
@@ -135,7 +137,7 @@ export const OfferLetterModal: React.FC<OfferLetterModalProps> = ({
             width="210"
             height="170"
             viewBox="0 0 210 170"
-            className="absolute bottom-0 left-0 pointer-events-none select-none"
+            className="w-28 h-24 sm:w-[210px] sm:h-[170px] absolute bottom-0 left-0 pointer-events-none select-none"
             aria-hidden="true"
           >
             {Array.from({ length: 7 }).map((_, r) =>
@@ -161,8 +163,8 @@ export const OfferLetterModal: React.FC<OfferLetterModalProps> = ({
 
           <div className="relative z-10 max-w-2xl mx-auto">
             {/* Skillora Brand Header */}
-            <div className="flex items-center gap-3.5 pt-2 pb-5">
-              <svg width="52" height="52" viewBox="0 0 56 56" aria-hidden="true">
+            <div className="flex items-center gap-3 pt-1 sm:pt-2 pb-4 sm:pb-5">
+              <svg className="w-10 h-10 sm:w-[52px] sm:h-[52px] shrink-0" viewBox="0 0 56 56" aria-hidden="true">
                 <defs>
                   <linearGradient id="skilloraRibbonA" x1="0" y1="0" x2="1" y2="1">
                     <stop offset="0%" stopColor="#d8c587" />
@@ -188,7 +190,7 @@ export const OfferLetterModal: React.FC<OfferLetterModalProps> = ({
                   fill="url(#skilloraRibbonA)"
                 />
               </svg>
-              <span className="text-4xl font-extrabold tracking-tight text-[#a9c9c4]">
+              <span className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#a9c9c4]">
                 Skillora
               </span>
             </div>
@@ -201,21 +203,21 @@ export const OfferLetterModal: React.FC<OfferLetterModalProps> = ({
             </div>
 
             {/* Centered Title */}
-            <h1 className="text-center text-2xl sm:text-[28px] font-extrabold tracking-wide text-[#a7b999] my-6 uppercase">
+            <h1 className="text-center text-xl sm:text-[28px] font-extrabold tracking-wide text-[#a7b999] my-4 sm:my-6 uppercase">
               INTERNSHIP OFFER LETTER
             </h1>
 
             {/* Addressee & Issue Date */}
-            <div className="flex items-start justify-between gap-4 text-sm text-[#2c303a] mb-8">
+            <div className="flex flex-col sm:flex-row items-start justify-between gap-2 sm:gap-4 text-sm text-[#2c303a] mb-6 sm:mb-8">
               <div>
                 <div className="font-bold">To:</div>
                 <div className="font-bold">{offer.candidateName}</div>
               </div>
-              <div className="font-medium text-right">{offer.issuedDate}</div>
+              <div className="font-medium sm:text-right">{offer.issuedDate}</div>
             </div>
 
             {/* Exact Skillora Offer Letter Body */}
-            <div className="space-y-4 text-sm sm:text-[15px] leading-relaxed text-[#252830]">
+            <div className="space-y-3.5 sm:space-y-4 text-xs sm:text-[15px] leading-relaxed text-[#252830]">
               <p>Dear Candidate,</p>
 
               <p>
@@ -244,18 +246,18 @@ export const OfferLetterModal: React.FC<OfferLetterModalProps> = ({
             </div>
 
             {/* Bottom Signature & Contact Block */}
-            <div className="mt-14 mb-6 flex items-end justify-between gap-6">
+            <div className="mt-10 sm:mt-14 mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-5 sm:gap-6">
               <div className="text-sm text-[#2c303a]">
                 <div className="font-bold">Aditya Jain</div>
                 <div className="font-bold">Founder</div>
               </div>
 
-              <div className="flex items-center gap-3">
-                <div className="text-right text-xs sm:text-sm text-[#2c303a] leading-snug">
+              <div className="flex items-center gap-3 self-end sm:self-auto">
+                <div className="text-right text-xs sm:text-sm text-[#2c303a] leading-snug break-all sm:break-normal">
                   <div>6394050860</div>
                   <div>adityajain22112006@gmail.com</div>
                 </div>
-                <div className="flex flex-col items-center h-14 justify-between py-0.5">
+                <div className="flex flex-col items-center h-14 justify-between py-0.5 shrink-0">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#d4c287]" />
                   <div className="w-[1.5px] flex-1 bg-[#d4c287]" />
                   <span className="w-1.5 h-1.5 rounded-full bg-[#d4c287]" />

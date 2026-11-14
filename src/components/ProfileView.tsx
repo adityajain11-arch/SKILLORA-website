@@ -70,16 +70,16 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     <div className="space-y-8 animate-in fade-in duration-300">
       
       {/* Top Banner */}
-      <div className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-[#26223A] border border-[#7C6CF0]/15 dark:border-[#3D3759] cozy-card-shadow flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div className="flex items-center gap-4">
-          <div className="w-18 h-18 rounded-3xl bg-gradient-to-tr from-[#7C6CF0] to-[#FF8A65] p-1 shadow-md shrink-0">
+      <div className="p-5 sm:p-8 rounded-3xl bg-white dark:bg-[#26223A] border border-[#7C6CF0]/15 dark:border-[#3D3759] cozy-card-shadow flex flex-col md:flex-row md:items-center justify-between gap-5 sm:gap-6">
+        <div className="flex flex-wrap sm:flex-nowrap items-center gap-4 min-w-0">
+          <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-3xl bg-gradient-to-tr from-[#7C6CF0] to-[#FF8A65] p-1 shadow-md shrink-0">
             <div className="w-full h-full rounded-2xl bg-[#FFF8F0] dark:bg-[#1E1A2C] flex items-center justify-center text-[#7C6CF0] dark:text-[#A99CFF]">
-              <User className="w-9 h-9" />
+              <User className="w-8 h-8 sm:w-9 sm:h-9" />
             </div>
           </div>
 
-          <div>
-            <div className="flex items-center gap-2">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs font-bold text-[#7C6CF0] dark:text-[#A99CFF] uppercase tracking-wider">
                 Workvanta Candidate Profile
               </span>
@@ -87,7 +87,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 Active Candidate
               </span>
             </div>
-            <h2 className="text-2xl font-bold text-[#2D2A3E] dark:text-[#F2EEFF] mt-1">
+            <h2 className="text-xl sm:text-2xl font-bold text-[#2D2A3E] dark:text-[#F2EEFF] mt-1">
               {userProfile.name}
             </h2>
             <p className="text-xs text-[#6B6880] dark:text-[#A5A0BA] font-medium">
@@ -96,11 +96,11 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 w-full md:w-auto">
           {isEditing ? (
             <button
               onClick={handleSaveProfile}
-              className="px-6 py-2.5 rounded-full text-xs font-bold bg-[#7C6CF0] hover:bg-[#6a59e6] text-white shadow-md flex items-center gap-1.5"
+              className="w-full md:w-auto justify-center px-6 py-2.5 rounded-full text-xs font-bold bg-[#7C6CF0] hover:bg-[#6a59e6] text-white shadow-md flex items-center gap-1.5"
             >
               <Save className="w-3.5 h-3.5" />
               <span>Save Workvanta Profile</span>
@@ -108,7 +108,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           ) : (
             <button
               onClick={() => setIsEditing(true)}
-              className="px-5 py-2.5 rounded-full text-xs font-semibold bg-[#FFF8F0] dark:bg-[#1E1A2C] border border-[#7C6CF0]/25 text-[#7C6CF0] dark:text-[#A99CFF] hover:bg-[#7C6CF0]/10 transition-colors flex items-center gap-1.5"
+              className="w-full md:w-auto justify-center px-5 py-2.5 rounded-full text-xs font-semibold bg-[#FFF8F0] dark:bg-[#1E1A2C] border border-[#7C6CF0]/25 text-[#7C6CF0] dark:text-[#A99CFF] hover:bg-[#7C6CF0]/10 transition-colors flex items-center gap-1.5"
             >
               <Edit2 className="w-3.5 h-3.5" />
               <span>Edit Profile & Preferences</span>
@@ -148,7 +148,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                     className="w-full p-3 rounded-xl bg-[#FFF8F0] dark:bg-[#1E1A2C] border border-[#7C6CF0]/20 focus:outline-none"
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block font-semibold mb-1">University</label>
                     <input
@@ -178,7 +178,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
           {/* Skills & Strengths */}
           <div className="p-6 rounded-3xl bg-white dark:bg-[#26223A] border border-[#7C6CF0]/15 dark:border-[#3D3759] cozy-card-shadow space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <h3 className="text-base font-bold text-[#2D2A3E] dark:text-[#F2EEFF]">
                 Verified Skills & Passions
               </h3>
@@ -207,7 +207,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             </div>
 
             {isEditing && (
-              <div className="pt-2 flex items-center gap-2">
+              <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                 <input
                   type="text"
                   placeholder="Add a new skill (e.g. Next.js, WebGL, Rust)..."
@@ -234,13 +234,13 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
               Synced Resume & Public Profiles
             </h3>
 
-            <div className="p-4 rounded-2xl bg-[#FFF8F0] dark:bg-[#1E1A2C] border border-[#7C6CF0]/15 dark:border-[#3D3759] flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-[#7C6CF0]/15 text-[#7C6CF0] dark:text-[#A99CFF] flex items-center justify-center font-bold">
+            <div className="p-4 rounded-2xl bg-[#FFF8F0] dark:bg-[#1E1A2C] border border-[#7C6CF0]/15 dark:border-[#3D3759] flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-xl bg-[#7C6CF0]/15 text-[#7C6CF0] dark:text-[#A99CFF] flex items-center justify-center font-bold shrink-0">
                   PDF
                 </div>
-                <div>
-                  <div className="text-sm font-bold text-[#2D2A3E] dark:text-[#F2EEFF]">
+                <div className="min-w-0">
+                  <div className="text-sm font-bold text-[#2D2A3E] dark:text-[#F2EEFF] truncate">
                     {userProfile.uploadedResumeName}
                   </div>
                   <div className="text-xs text-[#34D399] font-medium">
@@ -257,7 +257,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                     setUserProfile({ ...userProfile, uploadedResumeName: updated });
                   }
                 }}
-                className="text-xs font-semibold text-[#7C6CF0] dark:text-[#A99CFF] hover:underline"
+                className="text-xs font-semibold text-[#7C6CF0] dark:text-[#A99CFF] hover:underline shrink-0"
               >
                 Replace
               </button>
@@ -268,20 +268,20 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 href={userProfile.portfolioUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="p-3 rounded-xl bg-[#FFF8F0]/70 dark:bg-[#1E1A2C] border border-[#7C6CF0]/10 flex items-center justify-between hover:text-[#7C6CF0]"
+                className="p-3 rounded-xl bg-[#FFF8F0]/70 dark:bg-[#1E1A2C] border border-[#7C6CF0]/10 flex items-center justify-between gap-2 min-w-0 hover:text-[#7C6CF0]"
               >
-                <span>Portfolio: {userProfile.portfolioUrl}</span>
-                <ExternalLink className="w-3.5 h-3.5 text-[#6B6880]" />
+                <span className="truncate min-w-0">Portfolio: {userProfile.portfolioUrl}</span>
+                <ExternalLink className="w-3.5 h-3.5 text-[#6B6880] shrink-0" />
               </a>
 
               <a
                 href={userProfile.githubUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="p-3 rounded-xl bg-[#FFF8F0]/70 dark:bg-[#1E1A2C] border border-[#7C6CF0]/10 flex items-center justify-between hover:text-[#7C6CF0]"
+                className="p-3 rounded-xl bg-[#FFF8F0]/70 dark:bg-[#1E1A2C] border border-[#7C6CF0]/10 flex items-center justify-between gap-2 min-w-0 hover:text-[#7C6CF0]"
               >
-                <span>GitHub: {userProfile.githubUrl}</span>
-                <ExternalLink className="w-3.5 h-3.5 text-[#6B6880]" />
+                <span className="truncate min-w-0">GitHub: {userProfile.githubUrl}</span>
+                <ExternalLink className="w-3.5 h-3.5 text-[#6B6880] shrink-0" />
               </a>
             </div>
           </div>
@@ -324,7 +324,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           {/* Simulation Output Card */}
           {simulatedRole && (
             <div className="p-5 rounded-2xl bg-[#FFF8F0] dark:bg-[#1E1A2C] border border-[#7C6CF0]/15 dark:border-[#3D3759] space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="text-xs font-bold text-[#7C6CF0] dark:text-[#A99CFF]">
                   {simulatedRole.company} Compatibility
                 </div>

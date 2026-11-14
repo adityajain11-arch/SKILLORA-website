@@ -71,23 +71,23 @@ export const ReviewsView: React.FC = () => {
     <div className="space-y-8 animate-in fade-in duration-300">
       
       {/* Header Banner */}
-      <div className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-[#26223A] border border-[#7C6CF0]/15 dark:border-[#3D3759] cozy-card-shadow flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <div className="p-5 sm:p-8 rounded-3xl bg-white dark:bg-[#26223A] border border-[#7C6CF0]/15 dark:border-[#3D3759] cozy-card-shadow flex flex-col md:flex-row md:items-center justify-between gap-5 sm:gap-6">
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#7C6CF0]/10 text-xs font-semibold text-[#7C6CF0] dark:text-[#A99CFF]">
             <MessageSquareQuote className="w-3.5 h-3.5 text-[#FF8A65]" />
             <span>Workvanta Remote Community</span>
           </div>
-          <h2 className="text-2xl font-bold text-[#2D2A3E] dark:text-[#F2EEFF] mt-2">
+          <h2 className="text-xl sm:text-2xl font-bold text-[#2D2A3E] dark:text-[#F2EEFF] mt-2">
             Real Remote Intern Reviews in India
           </h2>
-          <p className="text-sm text-[#6B6880] dark:text-[#A5A0BA] mt-1 max-w-2xl leading-relaxed">
+          <p className="text-xs sm:text-sm text-[#6B6880] dark:text-[#A5A0BA] mt-1 max-w-2xl leading-relaxed">
             Read honest reflections from students across India who completed remote fellowships. Learn what the async culture was actually like, what hardware was provided, and the true fellowship experience.
           </p>
         </div>
 
         <button
           onClick={() => setShowSubmitModal(true)}
-          className="px-6 py-3 rounded-full text-xs font-bold bg-[#7C6CF0] hover:bg-[#6a59e6] dark:bg-[#A99CFF] dark:hover:bg-[#9788f5] text-white dark:text-[#1B1826] shadow-md hover:shadow-lg transition-all flex items-center gap-2 whitespace-nowrap shrink-0"
+          className="w-full md:w-auto justify-center px-6 py-3 rounded-full text-xs font-bold bg-[#7C6CF0] hover:bg-[#6a59e6] dark:bg-[#A99CFF] dark:hover:bg-[#9788f5] text-white dark:text-[#1B1826] shadow-md hover:shadow-lg transition-all flex items-center gap-2 whitespace-nowrap shrink-0"
         >
           <Plus className="w-4 h-4" />
           <span>Contribute a Remote Review</span>
@@ -152,7 +152,7 @@ export const ReviewsView: React.FC = () => {
             </div>
 
             {/* Bottom Bar: Remote status & Recommendation */}
-            <div className="pt-3 border-t border-[#7C6CF0]/10 dark:border-[#3D3759] flex items-center justify-between text-xs text-[#6B6880] dark:text-[#A5A0BA]">
+            <div className="pt-3 border-t border-[#7C6CF0]/10 dark:border-[#3D3759] flex flex-wrap items-center justify-between gap-2 text-xs text-[#6B6880] dark:text-[#A5A0BA]">
               <div className="flex items-center gap-1.5">
                 <Laptop className="w-4 h-4 text-[#34D399]" />
                 <span>Work Format: <strong className="text-[#2D2A3E] dark:text-[#F2EEFF]">100% Remote</strong></span>
@@ -173,8 +173,8 @@ export const ReviewsView: React.FC = () => {
       {/* Submit Review Modal */}
       {showSubmitModal && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-black/45 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="relative w-full max-w-lg rounded-3xl bg-[#FFF8F0] dark:bg-[#26223A] border border-[#7C6CF0]/25 dark:border-[#3D3759] shadow-2xl p-6 sm:p-8 space-y-5">
-            <div className="flex items-start justify-between">
+          <div className="relative w-full max-w-lg rounded-3xl bg-[#FFF8F0] dark:bg-[#26223A] border border-[#7C6CF0]/25 dark:border-[#3D3759] shadow-2xl p-5 sm:p-8 space-y-5 max-h-[92vh] overflow-y-auto">
+            <div className="flex items-start justify-between gap-3">
               <div>
                 <h3 className="text-xl font-bold text-[#2D2A3E] dark:text-[#F2EEFF]">
                   Submit Remote Intern Review
@@ -185,14 +185,14 @@ export const ReviewsView: React.FC = () => {
               </div>
               <button
                 onClick={() => setShowSubmitModal(false)}
-                className="p-1.5 rounded-full text-[#6B6880] hover:bg-[#7C6CF0]/10"
+                className="p-1.5 rounded-full text-[#6B6880] hover:bg-[#7C6CF0]/10 shrink-0"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <form onSubmit={handleSubmitReview} className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-[#2D2A3E] dark:text-[#F2EEFF] mb-1">
                     Company Name
@@ -277,7 +277,7 @@ export const ReviewsView: React.FC = () => {
                 />
               </div>
 
-              <div className="pt-2 flex justify-end gap-3">
+              <div className="pt-2 flex flex-wrap justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => setShowSubmitModal(false)}
