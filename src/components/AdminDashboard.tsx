@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Application, OfferLetter, AuthUser, Internship, AdminRegistrationRecord } from '../types';
+import { Application, OfferLetter, AuthUser, Internship, AdminRegistrationRecord, EmailAlertRecord } from '../types';
 import { OfferLetterModal } from './OfferLetterModal';
 import { CompanyLogo } from './CompanyLogo';
 import { 
@@ -36,7 +36,8 @@ import {
   Phone,
   BookOpen,
   Compass,
-  ClipboardList
+  ClipboardList,
+  Bell
 } from 'lucide-react';
 import { fireCelebrationConfetti } from '../utils/confetti';
 
@@ -48,13 +49,13 @@ interface AdminDashboardProps {
   onInternshipsUpdated?: () => void;
 }
 
-type AdminTab = 'applicants' | 'internships' | 'registrations' | 'users';
+type AdminTab = 'applicants' | 'internships' | 'registrations' | 'users' | 'alerts';
 const ADMIN_SUBTAB_KEY = 'workvanta_admin_subtab';
 
 function getInitialAdminTab(): AdminTab {
   if (typeof window === 'undefined') return 'applicants';
   const saved = localStorage.getItem(ADMIN_SUBTAB_KEY) as AdminTab | null;
-  if (saved === 'applicants' || saved === 'internships' || saved === 'registrations' || saved === 'users') {
+  if (saved === 'applicants' || saved === 'internships' || saved === 'registrations' || saved === 'users' || saved === 'alerts') {
     return saved;
   }
   return 'applicants';
@@ -98,6 +99,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [regSearchQuery, setRegSearchQuery] = useState('');
   const [regTrackFilter, setRegTrackFilter] = useState('All');
   const [regStateFilter, setRegStateFilter] = useState('All');
+
+  // Automated Email Alerts log state
+  const [emailAlertsList, setEmailAlertsList] = useState<EmailAlertRecord[]>([]);
+  const [loadingAlerts, setLoadingAlerts] = useState(false);
+  const [alertSearchQuery, setAlertSearchQuery] = useState('');
 
   // Internships state
   const [internshipsList, setInternshipsList] = useState<Internship[]>([]);
@@ -239,6 +245,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   };
 
+  // Fetch Automated Email Alerts Log
+  const fetchEmailAlerts = async () => {
+    if (!currentUser || currentUser.role !== 'admin') return;
+    setLoadingAlerts(true);
+    try {
+      const res = await fetch('/api/admin/email-alerts', {
+        headers: getAuthHeaders()
+      });
+      if (res.status === 401 || res.status === 403) {
+        setAccessDenied(true);
+        return;
+      }
+      const data = await res.json();
+      if (data.success && Array.isArray(data.data)) {
+        setEmailAlertsList(data.data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch email alerts', err);
+    } finally {
+      setLoadingAlerts(false);
+    }
+  };
+
   // Fetch Internships
   const fetchInternships = async () => {
     setLoadingInternships(true);
@@ -262,6 +291,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     fetchApplicants();
     fetchUsers();
     fetchRegistrations();
+    fetchEmailAlerts();
     fetchInternships();
   }, [currentUser, authChecking]);
 
@@ -270,6 +300,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const handleFocus = () => {
       fetchUsers();
       fetchRegistrations();
+      fetchEmailAlerts();
       fetchApplicants();
     };
     window.addEventListener('focus', handleFocus);
@@ -311,13 +342,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       const data = await res.json();
       if (data.success) {
         fireCelebrationConfetti();
-        setActionSuccessMsg(`Skillora offer letter dispatched to ${offerNameInput.trim() || composingOfferApp.applicantName}!`);
-        setTimeout(() => setActionSuccessMsg(null), 4000);
+        const alertNote = data.emailAlert?.recipientEmail
+          ? ` Email alert triggered for ${data.emailAlert.recipientEmail}.`
+          : '';
+        setActionSuccessMsg(
+          `Skillora offer letter dispatched to ${offerNameInput.trim() || composingOfferApp.applicantName}!${alertNote}`
+        );
+        setTimeout(() => setActionSuccessMsg(null), 5000);
 
         setApplicants((prev) =>
           prev.map((a) => (a.id === targetAppId ? data.data : a))
         );
         setComposingOfferApp(null);
+        fetchEmailAlerts();
         if (data.offerLetter) {
           setViewingOffer({ offer: data.offerLetter, applicationId: targetAppId });
         }
@@ -362,8 +399,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       const data = await res.json();
       if (data.success) {
         fireCelebrationConfetti();
-        setActionSuccessMsg(`Interview call scheduled with ${schedulingApp.applicantName}!`);
-        setTimeout(() => setActionSuccessMsg(null), 4000);
+        const alertNote = data.emailAlert?.recipientEmail
+          ? ` Email alert triggered for ${data.emailAlert.recipientEmail}.`
+          : '';
+        setActionSuccessMsg(`Interview call scheduled with ${schedulingApp.applicantName}!${alertNote}`);
+        setTimeout(() => setActionSuccessMsg(null), 5000);
 
         setApplicants((prev) =>
           prev.map((a) => (a.id === schedulingApp.id ? data.data : a))
@@ -372,6 +412,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           setReviewingApp(data.data);
         }
         setSchedulingApp(null);
+        fetchEmailAlerts();
       }
     } catch (err) {
       console.error(err);
@@ -396,6 +437,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         setApplicants((prev) => prev.map((a) => (a.id === id ? data.data : a)));
         if (reviewingApp && reviewingApp.id === id) {
           setReviewingApp(data.data);
+        }
+        if (data.emailAlert?.recipientEmail) {
+          setActionSuccessMsg(
+            `Application stage updated to "${stage}" & automated email alert triggered for ${data.emailAlert.recipientEmail}.`
+          );
+          setTimeout(() => setActionSuccessMsg(null), 5000);
+          fetchEmailAlerts();
         }
       }
     } catch (err) {
@@ -747,6 +795,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               fetchApplicants();
               fetchUsers();
               fetchRegistrations();
+              fetchEmailAlerts();
               fetchInternships();
             }}
             className="p-2.5 rounded-2xl bg-[#FFF8F0] dark:bg-[#1E1A2C] border border-[#7C6CF0]/15 dark:border-[#3D3759] text-[#7C6CF0] dark:text-[#A99CFF] hover:bg-[#7C6CF0]/10 transition-colors cursor-pointer"
@@ -839,6 +888,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </span>
           <span className="px-2 py-0.5 rounded-full text-[10px] bg-cyan-500/15 text-cyan-600 dark:text-cyan-400">
             {registeredUsers.length}
+          </span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('alerts')}
+          className={`px-4 sm:px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-between sm:justify-center gap-2 cursor-pointer ${
+            activeTab === 'alerts'
+              ? 'bg-white dark:bg-[#26223A] text-[#7C6CF0] dark:text-[#A99CFF] shadow-xs'
+              : 'text-[#6B6880] dark:text-[#A5A0BA] hover:text-[#2D2A3E]'
+          }`}
+        >
+          <span className="flex items-center gap-2">
+            <Bell className="w-4 h-4 shrink-0" />
+            <span>Email Alerts</span>
+          </span>
+          <span className="px-2 py-0.5 rounded-full text-[10px] bg-amber-500/15 text-amber-600 dark:text-amber-300">
+            {emailAlertsList.length}
           </span>
         </button>
       </div>
@@ -1423,6 +1489,150 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </div>
                 ))}
               </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* TAB 5: AUTOMATED STATUS-CHANGE EMAIL ALERTS */}
+      {/* ======================================================== */}
+      {activeTab === 'alerts' && (
+        <div className="space-y-6">
+          <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-[#26223A] border border-[#7C6CF0]/15 dark:border-[#3D3759] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+            <div className="relative flex-1">
+              <Search className="w-4 h-4 text-[#6B6880] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                value={alertSearchQuery}
+                onChange={(e) => setAlertSearchQuery(e.target.value)}
+                placeholder="Search alerts by student email, name, company, role, or stage..."
+                aria-label="Search email alert logs"
+                className="w-full pl-10 pr-4 py-2.5 text-xs rounded-xl bg-[#FFF8F0]/80 dark:bg-[#1E1A2C] border border-[#7C6CF0]/15 text-[#2D2A3E] dark:text-[#F2EEFF] focus:outline-none focus:ring-2 focus:ring-[#7C6CF0]"
+              />
+            </div>
+
+            <div className="text-xs text-[#6B6880] dark:text-[#A5A0BA] flex items-center gap-2 shrink-0">
+              <Bell className="w-4 h-4 text-amber-500" />
+              <span>
+                Triggered automatically whenever an application stage changes in the tracker
+              </span>
+            </div>
+          </div>
+
+          <div className="rounded-3xl bg-white dark:bg-[#26223A] border border-[#7C6CF0]/15 dark:border-[#3D3759] overflow-hidden cozy-card-shadow">
+            <div className="p-4 sm:p-5 border-b border-[#7C6CF0]/10 dark:border-[#3D3759] flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Mail className="w-4 h-4 text-[#7C6CF0] shrink-0" />
+                <h3 className="text-sm font-bold text-[#2D2A3E] dark:text-[#F2EEFF]">
+                  Automated Status-Change Email Alerts ({emailAlertsList.length})
+                </h3>
+              </div>
+              <span className="text-[11px] text-[#6B6880] dark:text-[#A5A0BA]">
+                Stored in PostgreSQL email_alerts · SMTP / Resend Ready
+              </span>
+            </div>
+
+            {loadingAlerts && emailAlertsList.length === 0 ? (
+              <div className="p-12 text-center text-xs text-[#6B6880]">
+                Loading email alert audit trail...
+              </div>
+            ) : (
+              (() => {
+                const q = alertSearchQuery.trim().toLowerCase();
+                const filteredAlerts = q
+                  ? emailAlertsList.filter((al) =>
+                      al.recipientEmail.toLowerCase().includes(q) ||
+                      al.recipientName.toLowerCase().includes(q) ||
+                      al.company.toLowerCase().includes(q) ||
+                      al.roleTitle.toLowerCase().includes(q) ||
+                      al.newStage.toLowerCase().includes(q) ||
+                      al.subject.toLowerCase().includes(q)
+                    )
+                  : emailAlertsList;
+
+                if (filteredAlerts.length === 0) {
+                  return (
+                    <div className="p-10 sm:p-12 text-center text-[#6B6880] dark:text-[#A5A0BA] space-y-2">
+                      <Bell className="w-8 h-8 mx-auto text-[#7C6CF0]/40" />
+                      <p className="text-sm font-semibold text-[#2D2A3E] dark:text-[#F2EEFF]">
+                        No status-change email alerts recorded yet
+                      </p>
+                      <p className="text-xs max-w-md mx-auto">
+                        Change an application stage in the tracker or dispatch an interview/offer from the Applicants tab to trigger and audit an automated email alert here.
+                      </p>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="divide-y divide-[#7C6CF0]/10 dark:divide-[#3D3759]">
+                    {filteredAlerts.map((al) => (
+                      <div
+                        key={al.id}
+                        className="p-4 sm:p-5 hover:bg-[#FFF8F0]/40 dark:hover:bg-[#1E1A2C]/40 transition-colors flex flex-col lg:flex-row lg:items-center justify-between gap-4 text-xs"
+                      >
+                        <div className="space-y-1.5 min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-bold text-sm text-[#2D2A3E] dark:text-[#F2EEFF]">
+                              {al.subject}
+                            </span>
+                            <span
+                              className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
+                                al.deliveryStatus === 'sent'
+                                  ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25'
+                                  : al.deliveryStatus === 'failed'
+                                  ? 'bg-red-500/15 text-red-600 dark:text-red-300 border border-red-500/25'
+                                  : 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/25'
+                              }`}
+                            >
+                              {al.deliveryStatus === 'sent'
+                                ? `Delivered (${al.provider})`
+                                : al.deliveryStatus === 'failed'
+                                ? 'Delivery Failed'
+                                : 'Logged (Configure SMTP/Resend for live send)'}
+                            </span>
+                          </div>
+
+                          <div className="text-[11px] text-[#6B6880] dark:text-[#A5A0BA] flex flex-wrap items-center gap-x-2 gap-y-1">
+                            <span>
+                              To: <strong className="text-[#2D2A3E] dark:text-[#F2EEFF]">{al.recipientName}</strong> ({al.recipientEmail})
+                            </span>
+                            <span>·</span>
+                            <span>
+                              {al.roleTitle} at <strong>{al.company}</strong>
+                            </span>
+                            <span>·</span>
+                            <span className="font-mono font-semibold text-[#7C6CF0] dark:text-[#A99CFF]">
+                              {al.previousStage} → {al.newStage}
+                            </span>
+                          </div>
+
+                          {al.errorMessage && (
+                            <div className="text-[11px] text-red-600 dark:text-red-400">
+                              Error: {al.errorMessage}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="text-[11px] text-[#6B6880] dark:text-[#A5A0BA] shrink-0 lg:text-right">
+                          {al.sentAt && (
+                            <span>
+                              {new Date(al.sentAt).toLocaleString('en-IN', {
+                                day: 'numeric',
+                                month: 'short',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()
             )}
           </div>
         </div>

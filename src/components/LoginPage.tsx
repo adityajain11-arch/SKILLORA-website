@@ -196,7 +196,15 @@ export const LoginPage: React.FC<LoginPageProps> = ({
     try {
       const result = await signInWithPopup(auth, googleAuthProvider);
       try {
-        await syncFirebaseUserProfile(result.user);
+        await syncFirebaseUserProfile(
+          result.user,
+          mode === 'signup'
+            ? {
+                university: college.trim() || undefined,
+                major: domainTrack ? `${course} · ${domainTrack}` : undefined,
+              }
+            : undefined
+        );
       } catch (syncErr) {
         console.warn('Firestore profile sync warning:', syncErr);
       }
@@ -204,7 +212,22 @@ export const LoginPage: React.FC<LoginPageProps> = ({
       const res = await fetch('/api/auth/google', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idToken }),
+        body: JSON.stringify({
+          idToken,
+          mode,
+          ...(mode === 'signup'
+            ? {
+                registration: {
+                  name: name.trim(),
+                  mobile: mobile.trim(),
+                  college: college.trim(),
+                  course,
+                  domainTrack,
+                  state: stateName,
+                },
+              }
+            : {}),
+        }),
       });
       const data = await res.json();
       if (data.success && data.user) {

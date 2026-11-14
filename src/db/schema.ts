@@ -111,10 +111,31 @@ export const registrations = pgTable('registrations', {
   createdAt: timestamp('created_at').defaultNow(),
 });
 
+export const emailAlerts = pgTable('email_alerts', {
+  id: text('id').primaryKey(),
+  applicationId: text('application_id').notNull().references(() => applications.id, { onDelete: 'cascade' }),
+  userId: text('user_id').notNull().references(() => users.id),
+  recipientEmail: text('recipient_email').notNull(),
+  recipientName: text('recipient_name').notNull(),
+  company: text('company').notNull(),
+  roleTitle: text('role_title').notNull(),
+  previousStage: text('previous_stage').notNull(),
+  newStage: text('new_stage').notNull(),
+  subject: text('subject').notNull(),
+  bodyText: text('body_text').notNull(),
+  bodyHtml: text('body_html').notNull(),
+  deliveryStatus: text('delivery_status').notNull(),
+  provider: text('provider').notNull(),
+  providerMessageId: text('provider_message_id'),
+  errorMessage: text('error_message'),
+  sentAt: timestamp('sent_at').defaultNow(),
+});
+
 export const usersRelations = relations(users, ({ many }) => ({
   applications: many(applications),
   bookmarks: many(bookmarks),
   registrations: many(registrations),
+  emailAlerts: many(emailAlerts),
 }));
 
 export const registrationsRelations = relations(registrations, ({ one }) => ({
@@ -124,9 +145,21 @@ export const registrationsRelations = relations(registrations, ({ one }) => ({
   }),
 }));
 
-export const applicationsRelations = relations(applications, ({ one }) => ({
+export const applicationsRelations = relations(applications, ({ one, many }) => ({
   user: one(users, {
     fields: [applications.userId],
+    references: [users.id],
+  }),
+  emailAlerts: many(emailAlerts),
+}));
+
+export const emailAlertsRelations = relations(emailAlerts, ({ one }) => ({
+  application: one(applications, {
+    fields: [emailAlerts.applicationId],
+    references: [applications.id],
+  }),
+  user: one(users, {
+    fields: [emailAlerts.userId],
     references: [users.id],
   }),
 }));

@@ -134,3 +134,23 @@ export interface AdminRegistrationRecord {
   lastLoginAt?: string | null;
 }
 
+export interface EmailAlertRecord {
+  id: string;
+  applicationId: string;
+  userId: string;
+  recipientEmail: string;
+  recipientName: string;
+  company: string;
+  roleTitle: string;
+  previousStage: string;
+  newStage: string;
+  subject: string;
+  bodyText: string;
+  bodyHtml: string;
+  deliveryStatus: 'sent' | 'logged' | 'failed';
+  provider: 'smtp' | 'resend' | 'internal-log';
+  providerMessageId?: string | null;
+  errorMessage?: string | null;
+  sentAt?: string | null;
+}
+

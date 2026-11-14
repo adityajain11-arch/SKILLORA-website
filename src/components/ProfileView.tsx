@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { UserProfile, Internship } from '../types';
 import { User, GraduationCap, FileText, Sparkles, Check, Edit2, Plus, X, Award, ExternalLink, Save } from 'lucide-react';
 import { fireCelebrationConfetti } from '../utils/confetti';
@@ -19,6 +19,10 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   const [newSkillInput, setNewSkillInput] = useState('');
   const [simulatedInternshipId, setSimulatedInternshipId] = useState(internships[0]?.id || '');
   const [saveSuccess, setSaveSuccess] = useState(false);
+
+  useEffect(() => {
+    setFormData(userProfile);
+  }, [userProfile]);
 
   const handleAddSkill = () => {
     if (!newSkillInput.trim()) return;

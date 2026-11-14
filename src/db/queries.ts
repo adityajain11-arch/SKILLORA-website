@@ -1,5 +1,5 @@
 import { db } from './index.ts';
-import { users, internships, applications, bookmarks, reviews, registrations } from './schema.ts';
+import { users, internships, applications, bookmarks, reviews, registrations, emailAlerts } from './schema.ts';
 import { eq, and, sql, desc } from 'drizzle-orm';
 import crypto from 'crypto';
 
@@ -183,26 +183,46 @@ export async function updateUserProfile(userId: string, updates: Partial<typeof 
 
 export async function getAllUsersForAdmin() {
   try {
-    const rows = await db.select().from(users);
-    return rows
-      .map((u) => ({
-        id: u.id,
-        uid: u.uid,
-        name: u.name,
-        email: u.email,
-        university: u.university || 'University in India',
-        major: u.major || 'Computer Science',
-        gradYear: u.gradYear || '2027',
-        bio: u.bio || '',
-        skills: (u.skills as string[]) || [],
-        preferredRoles: (u.preferredRoles as string[]) || [],
-        preferredWorkType: u.preferredWorkType || 'Remote',
-        authProvider: u.authProvider || (u.uid ? 'google' : 'email'),
-        loginCount: u.loginCount ?? 1,
-        lastLoginAt: u.lastLoginAt || u.createdAt,
-        createdAt: u.createdAt,
-        role: u.email?.toLowerCase() === 'admin@workvanta.in' ? 'admin' : 'student',
-      }))
+    const [userRows, regRows] = await Promise.all([
+      db.select().from(users),
+      db.select().from(registrations).orderBy(desc(registrations.createdAt)),
+    ]);
+
+    const regByUserId = new Map<string, (typeof regRows)[number]>();
+    for (const r of regRows) {
+      if (!regByUserId.has(r.userId)) {
+        regByUserId.set(r.userId, r);
+      }
+    }
+
+    return userRows
+      .map((u) => {
+        const reg = regByUserId.get(u.id);
+        return {
+          id: u.id,
+          uid: u.uid,
+          name: u.name,
+          email: u.email,
+          university: reg?.college ? `${reg.college} (${reg.state})` : (u.university || 'University in India'),
+          major: reg ? `${reg.course} · ${reg.domainTrack}` : (u.major || 'Computer Science'),
+          gradYear: u.gradYear || '2027',
+          bio: u.bio || '',
+          skills: (u.skills as string[]) || [],
+          preferredRoles: (u.preferredRoles as string[]) || [],
+          preferredWorkType: u.preferredWorkType || 'Remote',
+          authProvider: u.authProvider || (u.uid ? 'google' : 'email'),
+          loginCount: u.loginCount ?? 1,
+          lastLoginAt: u.lastLoginAt || u.createdAt,
+          createdAt: u.createdAt,
+          role: u.email?.toLowerCase() === 'admin@workvanta.in' ? 'admin' : 'student',
+          hasRegistration: Boolean(reg),
+          registrationMobile: reg?.mobile || null,
+          registrationCollege: reg?.college || null,
+          registrationCourse: reg?.course || null,
+          registrationDomainTrack: reg?.domainTrack || null,
+          registrationState: reg?.state || null,
+        };
+      })
       .sort((a, b) => {
         const bTime = new Date(b.lastLoginAt || b.createdAt || 0).getTime();
         const aTime = new Date(a.lastLoginAt || a.createdAt || 0).getTime();
@@ -218,6 +238,21 @@ export async function getAllUsersForAdmin() {
 // REGISTRATIONS REPOSITORY (ADMIN-ONLY READ)
 // ==========================================
 
+export async function getRegistrationByUserId(userId: string) {
+  try {
+    const rows = await db
+      .select()
+      .from(registrations)
+      .where(eq(registrations.userId, userId))
+      .orderBy(desc(registrations.createdAt))
+      .limit(1);
+    return rows[0] || null;
+  } catch (error) {
+    console.error('Error in getRegistrationByUserId:', error);
+    throw new Error('Database query failed for getRegistrationByUserId', { cause: error });
+  }
+}
+
 export async function createRegistrationRecord(data: typeof registrations.$inferInsert) {
   try {
     const rows = await db.insert(registrations).values(data).returning();
@@ -225,6 +260,32 @@ export async function createRegistrationRecord(data: typeof registrations.$infer
   } catch (error) {
     console.error('Error in createRegistrationRecord:', error);
     throw new Error('Database query failed for createRegistrationRecord', { cause: error });
+  }
+}
+
+export async function upsertRegistrationForUser(data: typeof registrations.$inferInsert) {
+  try {
+    const existing = await getRegistrationByUserId(data.userId);
+    if (existing) {
+      const updated = await db
+        .update(registrations)
+        .set({
+          fullName: data.fullName || existing.fullName,
+          email: data.email || existing.email,
+          mobile: data.mobile || existing.mobile,
+          college: data.college || existing.college,
+          course: data.course || existing.course,
+          domainTrack: data.domainTrack || existing.domainTrack,
+          state: data.state || existing.state,
+        })
+        .where(eq(registrations.id, existing.id))
+        .returning();
+      return updated[0] || existing;
+    }
+    return await createRegistrationRecord(data);
+  } catch (error) {
+    console.error('Error in upsertRegistrationForUser:', error);
+    throw new Error('Database query failed for upsertRegistrationForUser', { cause: error });
   }
 }
 
@@ -254,6 +315,45 @@ export async function getAllRegistrationsForAdmin() {
   } catch (error) {
     console.error('Error in getAllRegistrationsForAdmin:', error);
     throw new Error('Database query failed for getAllRegistrationsForAdmin', { cause: error });
+  }
+}
+
+// ==========================================
+// EMAIL ALERTS REPOSITORY
+// ==========================================
+
+export async function createEmailAlertRecord(data: typeof emailAlerts.$inferInsert) {
+  try {
+    const rows = await db.insert(emailAlerts).values(data).returning();
+    return rows[0];
+  } catch (error) {
+    console.error('Error in createEmailAlertRecord:', error);
+    throw new Error('Database query failed for createEmailAlertRecord', { cause: error });
+  }
+}
+
+export async function getAllEmailAlertsForAdmin() {
+  try {
+    return await db
+      .select()
+      .from(emailAlerts)
+      .orderBy(desc(emailAlerts.sentAt));
+  } catch (error) {
+    console.error('Error in getAllEmailAlertsForAdmin:', error);
+    throw new Error('Database query failed for getAllEmailAlertsForAdmin', { cause: error });
+  }
+}
+
+export async function getEmailAlertsForUser(userId: string) {
+  try {
+    return await db
+      .select()
+      .from(emailAlerts)
+      .where(eq(emailAlerts.userId, userId))
+      .orderBy(desc(emailAlerts.sentAt));
+  } catch (error) {
+    console.error('Error in getEmailAlertsForUser:', error);
+    throw new Error('Database query failed for getEmailAlertsForUser', { cause: error });
   }
 }
 
@@ -369,24 +469,45 @@ export async function getUserApplications(userId: string) {
 
 export async function getAllApplicationsForAdmin() {
   try {
-    const rows = await db
-      .select({
-        app: applications,
-        userName: users.name,
-        userEmail: users.email,
-        userUniversity: users.university,
-        userMajor: users.major,
-      })
-      .from(applications)
-      .leftJoin(users, eq(applications.userId, users.id));
+    const [rows, regRows] = await Promise.all([
+      db
+        .select({
+          app: applications,
+          userName: users.name,
+          userEmail: users.email,
+          userUniversity: users.university,
+          userMajor: users.major,
+        })
+        .from(applications)
+        .leftJoin(users, eq(applications.userId, users.id)),
+      db.select().from(registrations).orderBy(desc(registrations.createdAt)),
+    ]);
 
-    const result = rows.map((row) => ({
-      ...row.app,
-      applicantName: row.app.applicantName || row.userName || 'Candidate',
-      applicantEmail: row.app.applicantEmail || row.userEmail || 'student@workvanta.in',
-      applicantUniversity: row.app.applicantUniversity || row.userUniversity || 'University in India',
-      applicantMajor: row.app.applicantMajor || row.userMajor || 'Computer Science',
-    }));
+    const regByUserId = new Map<string, (typeof regRows)[number]>();
+    for (const r of regRows) {
+      if (!regByUserId.has(r.userId)) {
+        regByUserId.set(r.userId, r);
+      }
+    }
+
+    const result = rows.map((row) => {
+      const reg = regByUserId.get(row.app.userId);
+      return {
+        ...row.app,
+        applicantName: row.app.applicantName || reg?.fullName || row.userName || 'Candidate',
+        applicantEmail: row.app.applicantEmail || reg?.email || row.userEmail || 'student@workvanta.in',
+        applicantUniversity:
+          reg?.college
+            ? `${reg.college}${reg.state ? ` (${reg.state})` : ''}`
+            : (row.app.applicantUniversity || row.userUniversity || 'University in India'),
+        applicantMajor:
+          reg?.course
+            ? `${reg.course}${reg.domainTrack ? ` · ${reg.domainTrack}` : ''}`
+            : (row.app.applicantMajor || row.userMajor || 'Computer Science'),
+        applicantMobile: reg?.mobile || null,
+        applicantState: reg?.state || null,
+      };
+    });
 
     result.sort((a, b) => new Date(b.appliedDate).getTime() - new Date(a.appliedDate).getTime());
     return result;

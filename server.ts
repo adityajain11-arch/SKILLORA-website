@@ -15,6 +15,7 @@ import {
   formatOfferDate,
   generateSkilloraOfferPdfBuffer,
 } from './server/offerLetterGenerator.ts';
+import { sendApplicationStatusEmailAlert } from './server/emailAlertService.ts';
 
 dotenv.config();
 
@@ -803,7 +804,7 @@ async function startServer() {
   // 1. Google Sign-In via Firebase Auth (Linked & Persisted to PostgreSQL)
   app.post('/api/auth/google', async (req: Request, res: Response) => {
     try {
-      const { idToken } = req.body;
+      const { idToken, mode, registration } = req.body || {};
       if (!idToken) {
         res.status(400).json({ success: false, message: 'ID token is required' });
         return;
@@ -815,11 +816,55 @@ async function startServer() {
         return;
       }
 
+      const userEmail = (decoded.email || `${decoded.uid}@workvanta.in`).trim().toLowerCase();
       const user = await dbQueries.getOrCreateFirebaseUser(
         decoded.uid,
-        decoded.email || `${decoded.uid}@workvanta.in`,
+        userEmail,
         decoded.name
       );
+
+      // Connect Google signup from the Registration Form directly to PostgreSQL registrations table
+      if (mode === 'signup' || (registration && typeof registration === 'object')) {
+        const existingReg = await dbQueries.getRegistrationByUserId(user.id);
+        const regInput = (registration && typeof registration === 'object' ? registration : {}) as Record<string, any>;
+        const hasFilledFields = Boolean(
+          (typeof regInput.mobile === 'string' && regInput.mobile.trim()) ||
+          (typeof regInput.college === 'string' && regInput.college.trim()) ||
+          (typeof regInput.domainTrack === 'string' && regInput.domainTrack.trim())
+        );
+
+        if (!existingReg || hasFilledFields) {
+          await dbQueries.upsertRegistrationForUser({
+            id: existingReg?.id || `reg-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`,
+            userId: user.id,
+            fullName:
+              (typeof regInput.name === 'string' && regInput.name.trim()) ||
+              user.name ||
+              'Workvanta Student',
+            email: userEmail,
+            mobile:
+              (typeof regInput.mobile === 'string' && regInput.mobile.trim()) ||
+              existingReg?.mobile ||
+              'Google Sign-In (Not provided)',
+            college:
+              (typeof regInput.college === 'string' && regInput.college.trim()) ||
+              existingReg?.college ||
+              'Google Verified Student',
+            course:
+              (typeof regInput.course === 'string' && regInput.course.trim()) ||
+              existingReg?.course ||
+              'Undergraduate / Postgraduate',
+            domainTrack:
+              (typeof regInput.domainTrack === 'string' && regInput.domainTrack.trim()) ||
+              existingReg?.domainTrack ||
+              'General Remote Track',
+            state:
+              (typeof regInput.state === 'string' && regInput.state.trim()) ||
+              existingReg?.state ||
+              'India',
+          });
+        }
+      }
 
       const token = generateSecureToken(user.id);
 
@@ -1269,16 +1314,47 @@ async function startServer() {
         return;
       }
 
-      const updated = await dbQueries.updateApplicationRecord(id, {
-        ...req.body,
-        id: current.id,
-        userId: req.user!.id
-      });
+      const allowedUpdates: Record<string, any> = {};
+      if (typeof req.body?.stage === 'string' && req.body.stage.trim()) {
+        allowedUpdates.stage = req.body.stage.trim();
+      }
+      if (typeof req.body?.notes === 'string') {
+        allowedUpdates.notes = req.body.notes;
+      }
+      if (typeof req.body?.nextStepTitle === 'string') {
+        allowedUpdates.nextStepTitle = req.body.nextStepTitle;
+      }
+      if (typeof req.body?.nextStepDate === 'string') {
+        allowedUpdates.nextStepDate = req.body.nextStepDate;
+      }
 
-      res.json({ success: true, data: updated });
+      const previousStage = current.stage;
+      const updated = await dbQueries.updateApplicationRecord(id, allowedUpdates);
+
+      let emailAlert = null;
+      if (updated && allowedUpdates.stage && allowedUpdates.stage !== previousStage) {
+        emailAlert = await sendApplicationStatusEmailAlert({
+          application: updated,
+          previousStage,
+          newStage: updated.stage,
+        });
+      }
+
+      res.json({ success: true, data: updated, emailAlert });
     } catch (error: any) {
       console.error('Failed to update application:', error);
       res.status(500).json({ success: false, message: 'Failed to update application' });
+    }
+  });
+
+  // 9b. Student: Fetch own automated email alert notifications
+  app.get('/api/email-alerts', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const alerts = await dbQueries.getEmailAlertsForUser(req.user!.id);
+      res.json({ success: true, count: alerts.length, data: alerts });
+    } catch (error: any) {
+      console.error('Failed to fetch user email alerts:', error);
+      res.status(500).json({ success: false, message: 'Failed to load email alert history' });
     }
   });
 
@@ -1362,6 +1438,7 @@ async function startServer() {
         letterBody: buildSkilloraOfferBody(domain),
       };
 
+      const previousStage = targetApp.stage;
       const updated = await dbQueries.updateApplicationRecord(id, {
         stage: 'offer',
         nextStepTitle: 'Official Offer Letter Dispatched 🎉',
@@ -1370,11 +1447,31 @@ async function startServer() {
         offerLetter
       });
 
+      const pdfBuffer = generateSkilloraOfferPdfBuffer({
+        candidateName: offerLetter.candidateName,
+        issuedDate: offerLetter.issuedDate,
+        domain: offerLetter.roleTitle,
+      });
+      const safeFileName = offerLetter.candidateName.replace(/[^a-zA-Z0-9_-]+/g, '_');
+
+      const emailAlert = updated
+        ? await sendApplicationStatusEmailAlert({
+            application: updated,
+            previousStage,
+            newStage: 'offer',
+            extraContext: {
+              offerPdfBuffer: pdfBuffer,
+              offerFileName: `offer_letter_${safeFileName}.pdf`,
+            },
+          })
+        : null;
+
       res.json({
         success: true,
         message: `Offer letter generated and sent to ${candidateName}!`,
         data: updated,
-        offerLetter
+        offerLetter,
+        emailAlert,
       });
     } catch (error: any) {
       console.error('Failed to send offer letter:', error);
@@ -1437,6 +1534,7 @@ async function startServer() {
         return;
       }
 
+      const previousStage = targetApp.stage;
       const updates: any = {};
       if (stage) updates.stage = stage;
       if (reviewerNotes) {
@@ -1445,10 +1543,21 @@ async function startServer() {
 
       const updated = await dbQueries.updateApplicationRecord(id, updates);
 
+      let emailAlert = null;
+      if (updated && stage && stage !== previousStage) {
+        emailAlert = await sendApplicationStatusEmailAlert({
+          application: updated,
+          previousStage,
+          newStage: updated.stage,
+          extraContext: { reviewerNotes },
+        });
+      }
+
       res.json({
         success: true,
         message: 'Applicant status updated successfully',
-        data: updated
+        data: updated,
+        emailAlert,
       });
     } catch (error: any) {
       console.error('Failed to update stage:', error);
@@ -1513,12 +1622,28 @@ async function startServer() {
       const notesInfo = interviewerNotes ? `\n[Interview Note: ${interviewerNotes}]` : '';
       updates.notes = `${targetApp.notes || ''}${meetingInfo}${notesInfo}`.trim();
 
+      const previousStage = targetApp.stage;
       const updated = await dbQueries.updateApplicationRecord(id, updates);
+
+      const emailAlert = updated
+        ? await sendApplicationStatusEmailAlert({
+            application: updated,
+            previousStage,
+            newStage: 'interviewing',
+            extraContext: {
+              meetingLink,
+              interviewDate: updates.nextStepDate,
+              interviewTitle: updates.nextStepTitle,
+              reviewerNotes: interviewerNotes,
+            },
+          })
+        : null;
 
       res.json({
         success: true,
         message: `Interview call successfully scheduled with ${targetApp.applicantName}!`,
-        data: updated
+        data: updated,
+        emailAlert,
       });
     } catch (error: any) {
       console.error('Failed to schedule interview:', error);
@@ -1553,6 +1678,21 @@ async function startServer() {
     } catch (error: any) {
       console.error('Failed to get registration records:', error);
       res.status(500).json({ success: false, message: 'Failed to load registration submissions' });
+    }
+  });
+
+  // 15c. Admin: Audit log of automated status-change email alerts - Clearance Protected
+  app.get('/api/admin/email-alerts', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const alerts = await dbQueries.getAllEmailAlertsForAdmin();
+      res.json({
+        success: true,
+        count: alerts.length,
+        data: alerts
+      });
+    } catch (error: any) {
+      console.error('Failed to get email alerts:', error);
+      res.status(500).json({ success: false, message: 'Failed to load automated email alert logs' });
     }
   });
 
