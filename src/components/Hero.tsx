@@ -45,7 +45,7 @@ export const Hero: React.FC<HeroProps> = ({ onExploreClick, onTrackerClick, role
                 onClick={onExploreClick}
                 className="px-6 py-3.5 rounded-full bg-[#7C6CF0] hover:bg-[#6a59e6] dark:bg-[#A99CFF] dark:hover:bg-[#9788f5] text-white dark:text-[#1B1826] font-semibold text-sm shadow-md hover:shadow-lg hover:scale-[1.01] transition-all flex items-center gap-2 group whitespace-nowrap"
               >
-                <span>Browse {roleCount} Remote Roles in India</span>
+                <span>Explore {roleCount} Internships in India</span>
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </button>
 
@@ -53,7 +53,7 @@ export const Hero: React.FC<HeroProps> = ({ onExploreClick, onTrackerClick, role
                 onClick={onTrackerClick}
                 className="px-6 py-3.5 rounded-full bg-white dark:bg-[#26223A] border border-[#7C6CF0]/25 dark:border-[#3D3759] text-[#2D2A3E] dark:text-[#F2EEFF] hover:border-[#7C6CF0] font-semibold text-sm shadow-xs transition-all whitespace-nowrap"
               >
-                View My Career Journey
+                View My Tracker
               </button>
             </div>
 

@@ -38,7 +38,7 @@ export const SearchAndFilters: React.FC<SearchAndFiltersProps> = ({
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search remote roles across India, skills, companies (e.g. React, Bengaluru, Python, Figma, Delhi)..."
+          placeholder="Search internships across India, skills, companies (e.g. React, Bengaluru, Python, Figma, Delhi)..."
           className="w-full pl-12 pr-12 py-3.5 rounded-full bg-white dark:bg-[#26223A] border border-[#7C6CF0]/20 dark:border-[#3D3759] focus:outline-none focus:ring-2 focus:ring-[#7C6CF0] text-sm text-[#2D2A3E] dark:text-[#F2EEFF] placeholder-[#6B6880]/70 dark:placeholder-[#A5A0BA]/70 shadow-xs transition-all"
         />
         {searchQuery && (

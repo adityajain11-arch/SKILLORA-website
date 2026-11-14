@@ -95,15 +95,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   // Modals
   const [reviewingApp, setReviewingApp] = useState<Application | null>(null);
   const [composingOfferApp, setComposingOfferApp] = useState<Application | null>(null);
-  const [viewingOffer, setViewingOffer] = useState<OfferLetter | null>(null);
+  const [viewingOffer, setViewingOffer] = useState<{ offer: OfferLetter; applicationId: string } | null>(null);
   const [schedulingApp, setSchedulingApp] = useState<Application | null>(null);
 
-  // Offer Composer Form state
-  const [stipendInput, setStipendInput] = useState('Full Fellowship Grant & Tech Setup Allowance');
-  const [startDateInput, setStartDateInput] = useState('June 1, 2026');
-  const [signerNameInput, setSignerNameInput] = useState('Sarah Chen');
-  const [signerTitleInput, setSignerTitleInput] = useState('Head of Engineering Talent & Fellowship Admissions');
-  const [customLetterBody, setCustomLetterBody] = useState('');
+  // Offer Composer Form state (Skillora template: only Name, Date, Domain change)
+  const [offerNameInput, setOfferNameInput] = useState('');
+  const [offerDateInput, setOfferDateInput] = useState('');
+  const [offerDomainInput, setOfferDomainInput] = useState('');
   const [sendingOffer, setSendingOffer] = useState(false);
 
   // Interview Scheduler Form state
@@ -238,13 +236,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   // Handle Open Offer Composer
   const handleOpenOfferComposer = (app: Application) => {
     setComposingOfferApp(app);
-    setStipendInput(app.stipendDisplay || 'Full Fellowship Grant & Tech Setup Allowance');
-    setStartDateInput('June 1, 2026');
-    setSignerNameInput('Sarah Chen');
-    setSignerTitleInput('Head of Engineering Talent & Fellowship Admissions');
-    setCustomLetterBody(
-      `Dear ${app.applicantName || 'Fellowship Candidate'},\n\nOn behalf of ${app.company} and the Workvanta Remote Fellowship Guild, we are genuinely thrilled to formally extend an offer of employment for the position of ${app.roleTitle} (100% Remote — India).\n\nYour application, thoughtful responses, and engineering portfolio stood out amongst hundreds of university applicants across India. The hiring review committee was particularly impressed by your problem-solving depth, craftsmanship, and commitment to accessible software.\n\nSummary of Fellowship Terms:\n• Position: ${app.roleTitle}\n• Work Mode: 100% Async Remote (Based in India)\n• Fellowship Terms: Full Fellowship Grant & Tech Allowance\n• Program Start Date: June 1, 2026\n• Equipment Allowance: Dedicated tech budget provided on Day 1\n• Mentorship: Weekly 1:1 sessions with a principal engineering mentor\n\nWe look forward to building remarkable products together. Welcome to ${app.company}!`
+    setOfferNameInput(app.applicantName || 'Candidate');
+    setOfferDateInput(
+      new Date().toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      })
     );
+    setOfferDomainInput(app.roleTitle || 'Python Programing');
   };
 
   // Handle Send Offer
@@ -252,33 +252,31 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     if (!composingOfferApp) return;
     setSendingOffer(true);
     try {
-      const res = await fetch(`/api/admin/applicants/${composingOfferApp.id}/send-offer`, {
+      const targetAppId = composingOfferApp.id;
+      const res = await fetch(`/api/admin/applicants/${targetAppId}/send-offer`, {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          ...getAuthHeaders()
+          ...getAuthHeaders(),
         },
         body: JSON.stringify({
-          stipendAmount: stipendInput,
-          startDate: startDateInput,
-          signerName: signerNameInput,
-          signerTitle: signerTitleInput,
-          customMessage: customLetterBody
-        })
+          candidateName: offerNameInput.trim(),
+          issuedDate: offerDateInput.trim(),
+          domain: offerDomainInput.trim(),
+        }),
       });
       const data = await res.json();
       if (data.success) {
         fireCelebrationConfetti();
-        setActionSuccessMsg(`Automated offer letter dispatched to ${composingOfferApp.applicantName}!`);
+        setActionSuccessMsg(`Skillora offer letter dispatched to ${offerNameInput.trim() || composingOfferApp.applicantName}!`);
         setTimeout(() => setActionSuccessMsg(null), 4000);
-        
-        // Update local state
+
         setApplicants((prev) =>
-          prev.map((a) => (a.id === composingOfferApp.id ? data.data : a))
+          prev.map((a) => (a.id === targetAppId ? data.data : a))
         );
         setComposingOfferApp(null);
         if (data.offerLetter) {
-          setViewingOffer(data.offerLetter);
+          setViewingOffer({ offer: data.offerLetter, applicationId: targetAppId });
         }
       }
     } catch (err) {
@@ -613,7 +611,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             onClick={onBackToDiscover}
             className="w-full sm:w-auto px-5 py-2.5 rounded-full text-xs font-bold border border-[#7C6CF0]/20 text-[#2D2A3E] dark:text-[#F2EEFF] hover:bg-[#7C6CF0]/10 transition-colors cursor-pointer"
           >
-            ← Return to Remote Roles
+            ← Return to Explore Internships
           </button>
           <button
             onClick={onNavigateToAdminLogin}
@@ -956,7 +954,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       {/* Issue Automated Offer Letter Button */}
                       {app.offerLetter ? (
                         <button
-                          onClick={() => setViewingOffer(app.offerLetter!)}
+                          onClick={() => setViewingOffer({ offer: app.offerLetter!, applicationId: app.id })}
                           className="px-4 py-2 rounded-xl text-xs font-bold bg-[#34D399]/20 hover:bg-[#34D399]/30 text-[#006949] dark:text-[#5EE3B0] border border-[#34D399]/30 transition-all flex items-center gap-1.5 cursor-pointer"
                         >
                           <Award className="w-3.5 h-3.5 text-[#34D399]" />
@@ -1810,11 +1808,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             
             <div className="p-6 bg-[#FFF8F0] dark:bg-[#1E1A2C] border-b border-[#7C6CF0]/15 dark:border-[#3D3759] flex items-center justify-between">
               <div>
-                <span className="text-xs font-bold text-[#7C6CF0] dark:text-[#A99CFF] uppercase tracking-wider block">
-                  Automated Offer Letter Engine
+                <span className="text-xs font-bold text-[#6E8B6E] dark:text-[#A9C7A9] uppercase tracking-wider block">
+                  Skillora Official Offer Letter Template
                 </span>
                 <h3 className="text-lg font-bold text-[#2D2A3E] dark:text-[#F2EEFF]">
-                  Issue Official Fellowship Offer to {composingOfferApp.applicantName}
+                  Generate Offer Letter for {composingOfferApp.applicantName}
                 </h3>
               </div>
               <button
@@ -1826,73 +1824,63 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
 
             <div className="p-6 overflow-y-auto space-y-4 text-xs">
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-[#2D2A3E] dark:text-[#F2EEFF] mb-1">
-                    Fellowship Grant & Terms
+                    Candidate Name (To:)
                   </label>
                   <input
                     type="text"
-                    value={stipendInput}
-                    onChange={(e) => setStipendInput(e.target.value)}
-                    placeholder="e.g. Full Fellowship Grant & Equipment Budget"
+                    value={offerNameInput}
+                    onChange={(e) => setOfferNameInput(e.target.value)}
+                    placeholder="e.g. Hritik Pal"
                     className="w-full px-3.5 py-2.5 rounded-xl bg-[#FFF8F0]/80 dark:bg-[#1E1A2C] border border-[#7C6CF0]/20 text-xs focus:outline-none focus:ring-2 focus:ring-[#7C6CF0]"
                   />
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-[#2D2A3E] dark:text-[#F2EEFF] mb-1">
-                    Program Start Date
+                    Offer Date
                   </label>
                   <input
                     type="text"
-                    value={startDateInput}
-                    onChange={(e) => setStartDateInput(e.target.value)}
-                    placeholder="e.g. June 1, 2026"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#FFF8F0]/80 dark:bg-[#1E1A2C] border border-[#7C6CF0]/20 text-xs focus:outline-none focus:ring-2 focus:ring-[#7C6CF0]"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-[#2D2A3E] dark:text-[#F2EEFF] mb-1">
-                    Signatory Name
-                  </label>
-                  <input
-                    type="text"
-                    value={signerNameInput}
-                    onChange={(e) => setSignerNameInput(e.target.value)}
+                    value={offerDateInput}
+                    onChange={(e) => setOfferDateInput(e.target.value)}
+                    placeholder="e.g. November 14, 2026"
                     className="w-full px-3.5 py-2.5 rounded-xl bg-[#FFF8F0]/80 dark:bg-[#1E1A2C] border border-[#7C6CF0]/20 text-xs focus:outline-none focus:ring-2 focus:ring-[#7C6CF0]"
                   />
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-[#2D2A3E] dark:text-[#F2EEFF] mb-1">
-                    Signatory Title
+                    Internship Domain
                   </label>
                   <input
                     type="text"
-                    value={signerTitleInput}
-                    onChange={(e) => setSignerTitleInput(e.target.value)}
+                    value={offerDomainInput}
+                    onChange={(e) => setOfferDomainInput(e.target.value)}
+                    placeholder="e.g. Python Programing"
                     className="w-full px-3.5 py-2.5 rounded-xl bg-[#FFF8F0]/80 dark:bg-[#1E1A2C] border border-[#7C6CF0]/20 text-xs focus:outline-none focus:ring-2 focus:ring-[#7C6CF0]"
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-[#2D2A3E] dark:text-[#F2EEFF] mb-1">
-                  Official Offer Letter Body
-                </label>
-                <textarea
-                  rows={8}
-                  value={customLetterBody}
-                  onChange={(e) => setCustomLetterBody(e.target.value)}
-                  className="w-full p-4 rounded-2xl bg-[#FFF8F0]/80 dark:bg-[#1E1A2C] border border-[#7C6CF0]/20 text-xs font-mono leading-relaxed focus:outline-none focus:ring-2 focus:ring-[#7C6CF0]"
-                />
+              <div className="p-4 rounded-2xl bg-[#FFF8F0]/70 dark:bg-[#1E1A2C] border border-[#7C6CF0]/15 space-y-2 text-[#2D2A3E] dark:text-[#F2EEFF]">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-[#6E8B6E] dark:text-[#A9C7A9]">
+                  Locked Template Preview (Only Name, Date &amp; Domain Change)
+                </div>
+                <div className="flex justify-between font-semibold text-xs pt-1">
+                  <span>To: {offerNameInput || 'Candidate'}</span>
+                  <span>{offerDateInput || 'November 14, 2026'}</span>
+                </div>
+                <p className="text-xs leading-relaxed text-[#474554] dark:text-[#A5A0BA]">
+                  Dear Candidate, Congratulations! We’re pleased to inform you that you have successfully registered for the <strong className="text-[#2D2A3E] dark:text-[#F2EEFF]">{offerDomainInput || 'Software Engineering'}</strong> Internship Program at Skillora...
+                </p>
+                <div className="flex justify-between text-[11px] text-[#6B6880] dark:text-[#A5A0BA] pt-1 border-t border-[#7C6CF0]/10">
+                  <span>Signed: Aditya Jain · Founder</span>
+                  <span>6394050860 · adityajain22112006@gmail.com</span>
+                </div>
               </div>
-
             </div>
 
             <div className="p-4 bg-[#FFF8F0] dark:bg-[#1E1A2C] border-t border-[#7C6CF0]/15 flex items-center justify-between">
@@ -1913,12 +1901,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 {sendingOffer ? (
                   <>
                     <span className="w-3.5 h-3.5 border-2 border-[#052e16] border-t-transparent rounded-full animate-spin" />
-                    <span>Sealing & Extending Offer...</span>
+                    <span>Generating Offer Letter...</span>
                   </>
                 ) : (
                   <>
                     <Award className="w-4 h-4" />
-                    <span>Issue Cryptographic Offer Letter</span>
+                    <span>Generate &amp; Send Offer Letter</span>
                   </>
                 )}
               </button>
@@ -1933,7 +1921,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {/* ======================================================== */}
       {viewingOffer && (
         <OfferLetterModal
-          offer={viewingOffer}
+          offer={viewingOffer.offer}
+          applicationId={viewingOffer.applicationId}
           onClose={() => setViewingOffer(null)}
         />
       )}

@@ -15,6 +15,8 @@ export type AppTab =
 interface NavbarProps {
   currentTab: AppTab;
   setCurrentTab: (tab: AppTab) => void;
+  authMode: 'signup' | 'signin';
+  onOpenAuth: (mode: 'signup' | 'signin') => void;
   isDark: boolean;
   setIsDark: (dark: boolean) => void;
   savedCount: number;
@@ -26,6 +28,8 @@ interface NavbarProps {
 export const Navbar: React.FC<NavbarProps> = ({
   currentTab,
   setCurrentTab,
+  authMode,
+  onOpenAuth,
   isDark,
   setIsDark,
   savedCount,
@@ -64,7 +68,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 : 'text-[#6B6880] dark:text-[#A5A0BA] hover:text-[#2D2A3E] dark:hover:text-[#F2EEFF]'
             }`}
           >
-            Explore Remote Roles
+            Explore Internships
             {currentTab === 'discover' && (
               <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#7C6CF0] dark:bg-[#A99CFF] rounded-full" />
             )}
@@ -78,7 +82,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 : 'text-[#6B6880] dark:text-[#A5A0BA] hover:text-[#2D2A3E] dark:hover:text-[#F2EEFF]'
             }`}
           >
-            Career Journey
+            Tracker
             {appliedCount > 0 && (
               <span className="w-5 h-5 text-xs rounded-full bg-[#7C6CF0]/15 dark:bg-[#A99CFF]/25 text-[#7C6CF0] dark:text-[#A99CFF] font-semibold flex items-center justify-center">
                 {appliedCount}
@@ -149,17 +153,31 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
 
           {isGuest ? (
-            <button
-              onClick={() => setCurrentTab('login')}
-              className={`px-4 py-2 text-xs font-bold rounded-full transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
-                currentTab === 'login'
-                  ? 'bg-[#7C6CF0] text-white shadow-md'
-                  : 'bg-[#7C6CF0] hover:bg-[#6a59e6] dark:bg-[#A99CFF] dark:hover:bg-[#9788f5] text-white dark:text-[#1B1826] shadow-xs'
-              }`}
-            >
-              <LogIn className="w-3.5 h-3.5" />
-              <span>Log In</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => onOpenAuth('signin')}
+                className={`px-4 py-2 text-xs font-bold rounded-full border transition-all whitespace-nowrap shrink-0 cursor-pointer ${
+                  currentTab === 'login' && authMode === 'signin'
+                    ? 'border-[#7C6CF0] bg-[#7C6CF0]/10 text-[#7C6CF0] dark:border-[#A99CFF] dark:text-[#A99CFF]'
+                    : 'border-[#7C6CF0]/35 dark:border-[#3D3759] text-[#2D2A3E] dark:text-[#F2EEFF] hover:border-[#7C6CF0] hover:text-[#7C6CF0] dark:hover:text-[#A99CFF]'
+                }`}
+              >
+                Login
+              </button>
+              <button
+                type="button"
+                onClick={() => onOpenAuth('signup')}
+                className={`px-4 py-2 text-xs font-bold rounded-full transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer ${
+                  currentTab === 'login' && authMode === 'signup'
+                    ? 'bg-[#6a59e6] dark:bg-[#A99CFF] text-white dark:text-[#1B1826] shadow-md'
+                    : 'bg-[#7C6CF0] hover:bg-[#6a59e6] dark:bg-[#A99CFF] dark:hover:bg-[#9788f5] text-white dark:text-[#1B1826] shadow-xs'
+                }`}
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                <span>Sign Up</span>
+              </button>
+            </div>
           ) : (
             <div className="relative">
               <button

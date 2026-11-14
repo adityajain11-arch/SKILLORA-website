@@ -8,6 +8,13 @@ import { adminAuth } from './src/lib/firebase-admin.ts';
 import firebaseConfig from './firebase-applet-config.json';
 import * as dbQueries from './src/db/queries.ts';
 import { runMultiTurnChat, transcribeAudioBuffer } from './src/lib/gemini-server.ts';
+import {
+  SKILLORA_FIXED_DETAILS,
+  OFFER_LETTER_TEMPLATE_PDF_PATH,
+  buildSkilloraOfferBody,
+  formatOfferDate,
+  generateSkilloraOfferPdfBuffer,
+} from './server/offerLetterGenerator.ts';
 
 dotenv.config();
 
@@ -1132,11 +1139,33 @@ async function startServer() {
         stipendDisplay,
         storyAnswer,
         portfolioUrl,
+        linkedinId,
         resumeFileName
       } = req.body;
 
+      const cleanResumeName = typeof resumeFileName === 'string' ? resumeFileName.trim() : '';
+      if (!cleanResumeName || !/\.(pdf|doc|docx)$/i.test(cleanResumeName)) {
+        res.status(400).json({
+          success: false,
+          message: 'Please upload a valid resume file (PDF, DOC, or DOCX) before submitting.'
+        });
+        return;
+      }
+
+      const cleanLinkedinId = typeof linkedinId === 'string' ? linkedinId.trim() : '';
+      if (!cleanLinkedinId) {
+        res.status(400).json({
+          success: false,
+          message: 'LinkedIn ID is required unless marked as NA.'
+        });
+        return;
+      }
+
       const user = req.user!;
-      const profile = await dbQueries.getUserProfile(user.id);
+      const baseNotes = (typeof notes === 'string' && notes.trim()) || 'Submitted application via Workvanta.';
+      const notesWithLinkedin = baseNotes.includes('LinkedIn ID:')
+        ? baseNotes
+        : `${baseNotes}\nLinkedIn ID: ${cleanLinkedinId}`;
 
       const newApp = await dbQueries.createApplicationRecord({
         id: `app-${Date.now()}-${crypto.randomBytes(3).toString('hex')}`,
@@ -1154,11 +1183,16 @@ async function startServer() {
         appliedDate: new Date().toISOString().split('T')[0],
         nextStepTitle: 'Application Confirmation & Review',
         nextStepDate: new Date(Date.now() + 7 * 86400000).toISOString(),
-        notes: notes || 'Submitted application via Workvanta.',
+        notes: notesWithLinkedin,
         stipendDisplay: stipendDisplay || '100% Remote Fellowship · India',
         storyAnswer,
         portfolioUrl,
-        resumeFileName: resumeFileName || profile?.uploadedResumeName || 'Student_Resume.pdf'
+        resumeFileName: cleanResumeName
+      });
+
+      await dbQueries.updateUserProfile(user.id, {
+        uploadedResumeName: cleanResumeName,
+        ...(cleanLinkedinId.toUpperCase() !== 'NA' ? { linkedinUrl: cleanLinkedinId } : { linkedinUrl: 'NA' })
       });
 
       res.status(201).json({ success: true, data: newApp });
@@ -1232,11 +1266,9 @@ async function startServer() {
     try {
       const { id } = req.params;
       const {
-        stipendAmount,
-        startDate,
-        signerName,
-        signerTitle,
-        customMessage
+        candidateName: overrideName,
+        issuedDate: overrideDate,
+        domain: overrideDomain,
       } = req.body;
 
       const targetApp = await dbQueries.getApplicationById(id);
@@ -1246,40 +1278,44 @@ async function startServer() {
       }
 
       const candidateUser = await dbQueries.getUserById(targetApp.userId);
-      const candidateName = targetApp.applicantName || candidateUser?.name || 'Fellowship Candidate';
+      const candidateName =
+        (typeof overrideName === 'string' && overrideName.trim()) ||
+        targetApp.applicantName ||
+        candidateUser?.name ||
+        'Candidate';
       const candidateEmail = targetApp.applicantEmail || candidateUser?.email || 'student@workvanta.in';
-      const formattedDate = new Date().toLocaleDateString('en-IN', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      });
+      const domain =
+        (typeof overrideDomain === 'string' && overrideDomain.trim()) ||
+        targetApp.roleTitle ||
+        'Software Engineering';
+      const formattedDate = formatOfferDate(overrideDate);
 
       const offerLetter: OfferLetter = {
-        letterId: `WKV-OFFER-${Math.floor(100000 + Math.random() * 900000)}`,
+        letterId: `SKL-OFFER-${Math.floor(100000 + Math.random() * 900000)}`,
         candidateName,
         candidateEmail,
-        roleTitle: targetApp.roleTitle,
-        company: targetApp.company,
-        stipendAmount: stipendAmount || 'Full Fellowship Grant & Tech Allowance',
-        startDate: startDate || 'June 1, 2026',
-        remoteLocation: targetApp.location || 'Remote — India',
+        roleTitle: domain,
+        company: SKILLORA_FIXED_DETAILS.company,
+        stipendAmount: SKILLORA_FIXED_DETAILS.stipendAmount,
+        startDate: formattedDate,
+        remoteLocation: SKILLORA_FIXED_DETAILS.remoteLocation,
         issuedDate: formattedDate,
-        signerName: signerName || 'Sarah Chen',
-        signerTitle: signerTitle || 'Head of Engineering Talent & Fellowship Admissions',
-        letterBody: customMessage || `Dear ${candidateName},\n\nOn behalf of ${targetApp.company} and the Workvanta Remote Fellowship Guild, we are genuinely thrilled to formally offer you the position of ${targetApp.roleTitle} (100% Remote — India).\n\nYour application, thoughtful responses, and engineering portfolio stood out amongst hundreds of university applicants across India. The hiring review committee was particularly impressed by your problem-solving depth, craftsmanship, and commitment to accessible software.\n\nSummary of Fellowship Terms:\n• Position: ${targetApp.roleTitle}\n• Work Mode: 100% Async Remote (Based in India)\n• Fellowship Terms: ${stipendAmount || 'Full Fellowship Grant & Tech Allowance'}\n• Program Start Date: ${startDate || 'June 1, 2026'}\n• Equipment Allowance: Dedicated tech budget provided on Day 1\n• Mentorship: Weekly 1:1 sessions with a principal engineering mentor\n\nWe look forward to building remarkable products together. Welcome to ${targetApp.company}!`
+        signerName: SKILLORA_FIXED_DETAILS.signerName,
+        signerTitle: SKILLORA_FIXED_DETAILS.signerTitle,
+        letterBody: buildSkilloraOfferBody(domain),
       };
 
       const updated = await dbQueries.updateApplicationRecord(id, {
         stage: 'offer',
         nextStepTitle: 'Official Offer Letter Dispatched 🎉',
         nextStepDate: new Date().toISOString(),
-        notes: `${targetApp.notes || ''}\n[Automated Offer Letter Dispatched on ${formattedDate} by ${signerName || 'Workvanta Admissions'}]`.trim(),
+        notes: `${targetApp.notes || ''}\n[Skillora Offer Letter Dispatched on ${formattedDate} for ${domain}]`.trim(),
         offerLetter
       });
 
       res.json({
         success: true,
-        message: `Automated offer letter successfully generated and sent to ${candidateName}!`,
+        message: `Offer letter generated and sent to ${candidateName}!`,
         data: updated,
         offerLetter
       });
@@ -1287,6 +1323,49 @@ async function startServer() {
       console.error('Failed to send offer letter:', error);
       res.status(500).json({ success: false, message: 'Failed to send offer letter' });
     }
+  });
+
+  // 11b. Download Generated Skillora Offer Letter PDF (Owning Student or Admin)
+  app.get('/api/applications/:id/offer-letter.pdf', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { id } = req.params;
+      const targetApp = await dbQueries.getApplicationById(id);
+      if (!targetApp) {
+        res.status(404).json({ success: false, message: 'Application not found' });
+        return;
+      }
+
+      const isAdmin = req.user?.role === 'admin';
+      if (!isAdmin && targetApp.userId !== req.user?.id) {
+        res.status(403).json({ success: false, message: 'Forbidden' });
+        return;
+      }
+
+      if (!targetApp.offerLetter) {
+        res.status(404).json({ success: false, message: 'Offer letter has not been generated yet' });
+        return;
+      }
+
+      const offer = targetApp.offerLetter as OfferLetter;
+      const pdfBuffer = generateSkilloraOfferPdfBuffer({
+        candidateName: offer.candidateName,
+        issuedDate: offer.issuedDate,
+        domain: offer.roleTitle,
+      });
+
+      const safeFileName = offer.candidateName.replace(/[^a-zA-Z0-9_-]+/g, '_');
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="offer_letter_${safeFileName}.pdf"`);
+      res.send(pdfBuffer);
+    } catch (error: any) {
+      console.error('Failed to generate offer letter PDF:', error);
+      res.status(500).json({ success: false, message: 'Failed to generate offer letter PDF' });
+    }
+  });
+
+  // 11c. Serve Stored Reference Offer Letter Template PDF (Admin)
+  app.get('/api/admin/offer-letter-template.pdf', requireAdmin, (_req: AuthenticatedRequest, res: Response) => {
+    res.sendFile(OFFER_LETTER_TEMPLATE_PDF_PATH);
   });
 
   // 12. Admin: Update applicant stage or notes - Clearance Protected

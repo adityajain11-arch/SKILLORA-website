@@ -59,8 +59,14 @@ export default function App() {
   });
 
   // Private session: starts as null unless logged in
+  const [authMode, setAuthMode] = useState<'signup' | 'signin'>('signup');
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [authChecking, setAuthChecking] = useState<boolean>(true);
+
+  const handleOpenAuth = (mode: 'signup' | 'signin') => {
+    setAuthMode(mode);
+    setCurrentTab('login');
+  };
 
   const [internships, setInternships] = useState<Internship[]>([]);
   const [bookmarks, setBookmarks] = useState<string[]>([]);
@@ -447,6 +453,8 @@ export default function App() {
       <Navbar
         currentTab={currentTab}
         setCurrentTab={setCurrentTab}
+        authMode={authMode}
+        onOpenAuth={handleOpenAuth}
         isDark={isDark}
         setIsDark={setIsDark}
         savedCount={bookmarks.length}
@@ -467,6 +475,7 @@ export default function App() {
       <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full">
         {currentTab === 'login' && (
           <LoginPage
+            mode={authMode}
             currentUser={currentUser}
             onLoginSuccess={handleLoginSuccess}
             onBackToDiscover={() => setCurrentTab('discover')}
@@ -497,7 +506,7 @@ export default function App() {
               <div className="flex items-center justify-between mb-4">
                 <div className="text-sm font-semibold text-[#2D2A3E] dark:text-[#F2EEFF] flex items-center gap-2">
                   <Laptop className="w-4 h-4 text-[#34D399]" />
-                  <span>Showing {filteredInternships.length} Remote Roles Across India</span>
+                  <span>Showing {filteredInternships.length} Internships Across India</span>
                 </div>
                 {bookmarks.length > 0 && (
                   <button
@@ -517,9 +526,9 @@ export default function App() {
                   <div className="w-12 h-12 rounded-full bg-[#FF8A65]/15 text-[#FF8A65] mx-auto flex items-center justify-center">
                     <Sparkles className="w-6 h-6" />
                   </div>
-                  <h3 className="text-lg font-bold">No remote roles match your exact search criteria</h3>
+                  <h3 className="text-lg font-bold">No internships match your exact search criteria</h3>
                   <p className="text-xs text-[#6B6880] dark:text-[#A5A0BA] max-w-md mx-auto">
-                    Try broadening your category or clearing search terms to view all remote opportunities in India.
+                    Try broadening your category or clearing search terms to view all internship opportunities in India.
                   </p>
                   <button
                     onClick={handleResetFilters}
@@ -549,6 +558,7 @@ export default function App() {
         {currentTab === 'tracker' && (
           <ApplicationTracker
             applications={applications}
+            candidateName={currentUser?.name}
             onUpdateStage={handleUpdateApplicationStage}
             onUpdateNotes={handleUpdateApplicationNotes}
             onDeleteApplication={handleDeleteApplication}
@@ -624,10 +634,10 @@ export default function App() {
 
           <div className="flex items-center gap-6">
             <button onClick={() => setCurrentTab('discover')} className="hover:text-[#7C6CF0] transition-colors cursor-pointer">
-              Remote Roles
+              Explore Internships
             </button>
             <button onClick={() => setCurrentTab('tracker')} className="hover:text-[#7C6CF0] transition-colors cursor-pointer">
-              Career Journey
+              Tracker
             </button>
             <button onClick={() => setCurrentTab('reviews')} className="hover:text-[#7C6CF0] transition-colors cursor-pointer">
               Reviews
@@ -640,8 +650,8 @@ export default function App() {
                 Admin Console
               </button>
             )}
-            <button onClick={() => setCurrentTab('login')} className="hover:text-[#7C6CF0] transition-colors font-semibold cursor-pointer">
-              {currentUser ? 'My Account' : 'Private Login'}
+            <button onClick={() => handleOpenAuth('signup')} className="hover:text-[#7C6CF0] transition-colors font-semibold cursor-pointer">
+              {currentUser ? 'My Account' : 'Registration Form'}
             </button>
           </div>
         </div>

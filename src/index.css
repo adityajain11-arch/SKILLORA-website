@@ -51,3 +51,67 @@
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(124, 108, 240, 0.35);
 }
+
+/* Subtle organic swaying animation for closed curtain panels */
+@keyframes curtainSwayLeft {
+  0%, 100% {
+    transform: skewX(0deg) translateX(0px) scaleX(1);
+  }
+  30% {
+    transform: skewX(0.9deg) translateX(-1.5px) scaleX(1.012);
+  }
+  65% {
+    transform: skewX(-0.7deg) translateX(1.5px) scaleX(0.992);
+  }
+}
+
+@keyframes curtainSwayRight {
+  0%, 100% {
+    transform: skewX(0deg) translateX(0px) scaleX(1);
+  }
+  35% {
+    transform: skewX(-0.9deg) translateX(1.5px) scaleX(1.012);
+  }
+  70% {
+    transform: skewX(0.7deg) translateX(-1.5px) scaleX(0.992);
+  }
+}
+
+.curtain-sway-left {
+  transform-origin: top center;
+  animation: curtainSwayLeft 5.4s ease-in-out infinite;
+  will-change: transform;
+}
+
+.curtain-sway-right {
+  transform-origin: top center;
+  animation: curtainSwayRight 5.8s ease-in-out infinite;
+  animation-delay: -1.4s;
+  will-change: transform;
+}
+
+@keyframes ropeSway {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(1.6deg);
+  }
+  75% {
+    transform: rotate(-1.6deg);
+  }
+}
+
+.rope-sway {
+  transform-origin: 36px 16px;
+  animation: ropeSway 4.2s ease-in-out infinite;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .curtain-sway-left,
+  .curtain-sway-right,
+  .rope-sway {
+    animation: none;
+  }
+}
